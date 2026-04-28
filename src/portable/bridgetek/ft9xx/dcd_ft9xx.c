@@ -519,7 +519,6 @@ static uint16_t _ft9xx_dusb_out(uint8_t ep_number, uint8_t *buffer, uint16_t len
 // Initialize controller to device mode
 bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
   (void) rh_init;
-  TU_LOG2("FT9xx initialisation\r\n");
 
   _dcd_ft9xx_attach();
 
@@ -533,7 +532,6 @@ bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
 void dcd_int_enable(uint8_t rhport)
 {
   (void)rhport;
-  TU_LOG3("FT9xx int enable\r\n");
 
   // Peripheral devices interrupt enable.
   interrupt_enable_globally();
@@ -543,7 +541,6 @@ void dcd_int_enable(uint8_t rhport)
 void dcd_int_disable(uint8_t rhport)
 {
   (void)rhport;
-  TU_LOG3("FT9xx int disable\r\n");
 
   // Peripheral devices interrupt disable.
   interrupt_disable_globally();
@@ -609,7 +606,6 @@ void dcd_remote_wakeup(uint8_t rhport)
 void dcd_connect(uint8_t rhport)
 {
   (void)rhport;
-  TU_LOG2("FT9xx connect\r\n");
 
   CRITICAL_SECTION_BEGIN
   // Is device connected?
@@ -652,7 +648,6 @@ void dcd_connect(uint8_t rhport)
 void dcd_disconnect(uint8_t rhport)
 {
   (void)rhport;
-  TU_LOG2("FT9xx disconnect\r\n");
 
   // Disable the USB PHY.
   _ft9xx_phy_enable(false);
@@ -683,12 +678,10 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *ep_desc)
   uint8_t ep_reg_data = 0;
   int16_t total_ram;
 
-  TU_LOG2("FT9xx endpoint open %d %c\r\n", ep_number, ep_dir?'I':'O');
 
   // Check that the requested endpoint number is allowable.
   if (ep_number >= USBD_MAX_ENDPOINT_COUNT)
   {
-    TU_LOG1("FT9xx endpoint not valid: requested %d max %d\r\n", ep_number, USBD_MAX_ENDPOINT_COUNT);
     return false;
   }
 
@@ -700,7 +693,6 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *ep_desc)
   }
   if (ep_reg_size > USBD_EP_MAX_SIZE_1024)
   {
-    TU_LOG1("FT9xx endpoint size not valid: requested %d max 1024\r\n", ep_size);
     return false;
   }
   // Calculate actual amount of buffer RAM used by this endpoint. This may be more than the
@@ -717,7 +709,6 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *ep_desc)
       // This could be because an endpoint has been assigned with the same number.
       // On FT9xx, IN and OUT endpoints may not have the same number. e.g. There
       // cannot been an 0x81 and 0x01 endpoint.
-      TU_LOG1("FT9xx endpoint %d already assigned\r\n", ep_number);
       return false;
     }
 
@@ -753,7 +744,6 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *ep_desc)
     // allowable.
     if (total_ram < ep_buff_size)
     {
-      TU_LOG1("FT9xx insufficient buffer RAM for endpoint %d\r\n", ep_number);
       return false;
     }
 
@@ -772,7 +762,6 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *ep_desc)
     //ep_reg_data |= MASK_USBD_EPxCR_DB;
     // Set the control register for this endpoint.
     USBD_EP_CR_REG(ep_number) = ep_reg_data;
-    TU_LOG2("FT9xx endpoint setting %x\r\n", ep_reg_data);
   }
   else
   {

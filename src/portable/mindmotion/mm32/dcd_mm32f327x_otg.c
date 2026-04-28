@@ -115,7 +115,6 @@ static void prepare_next_setup_packet(uint8_t rhport) {
   const unsigned out_odd = _dcd.endpoint[0][0].odd;
   const unsigned in_odd  = _dcd.endpoint[0][1].odd;
   if (_dcd.bdt[0][0][out_odd].own) {
-    TU_LOG1("DCD fail to prepare the next SETUP %d %d\r\n", out_odd, in_odd);
     return;
   }
   _dcd.bdt[0][0][out_odd].data     = 0;
@@ -155,7 +154,6 @@ static void process_tokdne(uint8_t rhport) {
     return;
   }
   if (s >> 4) {
-    TU_LOG1("TKDNE %x\r\n", s);
   }
 
   const unsigned bc        = bd->bc;
@@ -387,7 +385,6 @@ bool dcd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t  *buffer, uint16_t t
   buffer_descriptor_t *bd  = &_dcd.bdt[epn][dir][ep->odd];
 
   if (bd->own) {
-    TU_LOG1("DCD XFER fail %x %d %lx %lx\r\n", ep_addr, total_bytes, ep->state, bd->head);
     return false; /* The last transfer has not completed */
   }
   ep->length    = total_bytes;

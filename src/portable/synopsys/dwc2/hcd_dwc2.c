@@ -852,10 +852,8 @@ TU_ATTR_ALWAYS_INLINE static inline void print_hcint(uint32_t hcint) {
 
   for(uint32_t i=0; i<14; i++) {
     if (hcint & TU_BIT(i)) {
-      TU_LOG1("%s ", str[i]);
     }
   }
-  TU_LOG1("\r\n");
 }
 #endif
 
@@ -946,7 +944,6 @@ static bool handle_channel_in_slave(dwc2_regs_t* dwc2, uint8_t ch_id, uint32_t h
 
   // if (hcsplt.split_en) {
   // if (edpt->hcchar_bm.ep_num == 1) {
-  //   TU_LOG1("Frame %u, ch %u: ep %u, hcint 0x%04lX ", dwc2->hfnum_bm.num, ch_id, hcsplt.ep_num, hcint);
   //   print_hcint(hcint);
   // }
 
@@ -1135,7 +1132,6 @@ static bool handle_channel_in_dma(dwc2_regs_t* dwc2, uint8_t ch_id, uint32_t hci
 
   bool is_done = false;
 
-  // TU_LOG1("in  hcint = %02lX\r\n", hcint);
 
   if (hcint & HCINT_HALTED) {
     if (hcint & (HCINT_XFER_COMPLETE | HCINT_STALL | HCINT_BABBLE_ERR)) {
@@ -1226,7 +1222,6 @@ static bool handle_channel_out_dma(dwc2_regs_t* dwc2, uint8_t ch_id, uint32_t hc
 
   bool is_done = false;
 
-  // TU_LOG1("out hcint = %02lX\r\n", hcint);
 
   if (hcint & HCINT_HALTED) {
     if (hcint & (HCINT_XFER_COMPLETE | HCINT_STALL)) {
@@ -1470,7 +1465,6 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
   const uint32_t gintmsk = dwc2->gintmsk;
   const uint32_t gintsts = dwc2->gintsts & gintmsk;
 
-  // TU_LOG1_HEX(gintsts);
 
   if (gintsts & GINTSTS_SOF) {
     const bool more_sof = handle_sof_irq(rhport, in_isr);
@@ -1481,7 +1475,6 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
 
   if (gintsts & GINTSTS_HPRTINT) {
     // Host port interrupt: source is cleared in HPRT register
-    // TU_LOG1_HEX(dwc2->hprt);
     handle_hprt_irq(rhport, in_isr);
   }
 

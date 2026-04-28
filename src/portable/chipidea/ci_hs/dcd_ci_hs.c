@@ -650,7 +650,6 @@ void dcd_int_handler(uint8_t rhport) {
   // Set if the port controller enters the full or high-speed operational state.
   // either from Bus Reset or Suspended state
   if (int_status & INTR_PORT_CHANGE) {
-    // TU_LOG2("PortChange %08lx\r\n", dcd_reg->PORTSC1);
 
     // Reset interrupt is not enabled, we manually check if Port Change is due
     // to connection / disconnection
@@ -673,7 +672,6 @@ void dcd_int_handler(uint8_t rhport) {
   }
 
   if (int_status & INTR_SUSPEND) {
-    // TU_LOG2("Suspend %08lx\r\n", dcd_reg->PORTSC1);
 
     if (dcd_reg->PORTSC1 & PORTSC1_SUSPEND) {
       // Note: Host may delay more than 3 ms before and/or after bus reset before doing enumeration.

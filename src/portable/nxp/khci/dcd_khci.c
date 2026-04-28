@@ -540,7 +540,6 @@ void dcd_int_handler(uint8_t rhport)
   }
 
   if (is & USB_ISTAT_SLEEP_MASK) {
-    // TU_LOG3("Suspend: "); TU_LOG2_HEX(is);
 
     // Note Host usually has extra delay after bus reset (without SOF), which could falsely
     // detected as Sleep event. Though usbd has debouncing logic so we are good
@@ -550,14 +549,12 @@ void dcd_int_handler(uint8_t rhport)
 
 #if 0 // ISTAT_RESUME never trigger, probably for host mode ?
   if (is & USB_ISTAT_RESUME_MASK) {
-    // TU_LOG2("ISTAT Resume: "); TU_LOG2_HEX(is);
     KHCI->ISTAT = USB_ISTAT_RESUME_MASK;
     process_bus_resume(rhport);
   }
 #endif
 
   if (KHCI->USBTRC0 & USB_USBTRC0_USB_RESUME_INT_MASK) {
-     // TU_LOG2("USBTRC0 Resume: "); TU_LOG2_HEX(is); TU_LOG2_HEX(KHCI->USBTRC0);
     process_bus_resume(rhport);
   }
 

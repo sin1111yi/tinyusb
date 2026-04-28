@@ -37,7 +37,6 @@
 
 // Debug level of USBD
 #define USBC_DEBUG   2
-#define TU_LOG_USBC(...)   TU_LOG(USBC_DEBUG, __VA_ARGS__)
 
 // Event queue
 // usbc_int_set() is used as mutex in OS NONE config
@@ -99,8 +98,7 @@ bool tuc_init(uint8_t rhport, uint32_t port_type) {
     return true;
   }
 
-  TU_LOG_USBC("USBC init on port %u\r\n", rhport);
-  TU_LOG_INT(USBC_DEBUG, sizeof(tcd_event_t));
+  TU_LOG_INFO("USBC init on port %u", rhport);
 
   TU_ASSERT(tcd_init(rhport, port_type));
   tcd_int_enable(rhport);

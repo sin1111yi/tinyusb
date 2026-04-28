@@ -95,7 +95,6 @@ void netd_report(uint8_t *buf, uint16_t len) {
   len = tu_min16(len, sizeof(ecm_notify_t));
 
   if (!usbd_edpt_claim(rhport, _netd_itf.ep_notif)) {
-    TU_LOG1("ECM: Failed to claim notification endpoint\n");
     return;
   }
 

@@ -42,7 +42,6 @@
   #define CFG_TUD_MTP_LOG_LEVEL   CFG_TUD_LOG_LEVEL
 #endif
 
-#define TU_LOG_DRV(...)   TU_LOG(CFG_TUD_MTP_LOG_LEVEL, __VA_ARGS__)
 
 //--------------------------------------------------------------------+
 // Weak stubs: invoked if no strong implementation is available
@@ -210,7 +209,6 @@ bool tud_mtp_data_send(mtp_container_info_t *p_container) {
 
   const uint16_t xact_len = (uint16_t)tu_min32(p_mtp->total_len - p_mtp->xferred_len, CFG_TUD_MTP_EP_BUFSIZE);
 
-  TU_LOG_DRV("  MTP Data IN: xferred_len/total_len=%lu/%lu, xact_len=%u\r\n", p_mtp->xferred_len, p_mtp->total_len,
              xact_len);
   if (xact_len) {
     TU_VERIFY(usbd_edpt_claim(p_mtp->rhport, p_mtp->ep_in));
@@ -231,7 +229,6 @@ bool tud_mtp_data_receive(mtp_container_info_t *p_container) {
   // up to buffer size since 1st packet (with header) may also contain payload
   const uint16_t xact_len = CFG_TUD_MTP_EP_BUFSIZE;
 
-  TU_LOG_DRV("  MTP Data OUT: xferred_len/total_len=%lu/%lu, xact_len=%u\r\n", p_mtp->xferred_len, p_mtp->total_len,
              xact_len);
   TU_VERIFY(usbd_edpt_claim(p_mtp->rhport, p_mtp->ep_out));
   TU_ASSERT(usbd_edpt_xfer(p_mtp->rhport, p_mtp->ep_out, _mtpd_epbuf.buf, xact_len, false));
@@ -326,7 +323,6 @@ bool mtpd_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t 
 
   switch (request->bRequest) {
     case MTP_REQ_CANCEL:
-      TU_LOG_DRV("  MTP request: Cancel\n");
       if (stage == CONTROL_STAGE_SETUP) {
         return tud_control_xfer(rhport, request, p_mtp->control_buf, CFG_TUD_MTP_EP_CONTROL_BUFSIZE);
       } else if (stage == CONTROL_STAGE_ACK) {
@@ -335,7 +331,6 @@ bool mtpd_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t 
       break;
 
     case MTP_REQ_GET_EXT_EVENT_DATA:
-      TU_LOG_DRV("  MTP request: Get Extended Event Data\n");
       if (stage == CONTROL_STAGE_SETUP) {
         const int32_t len = tud_mtp_request_get_extended_event_cb(&cb_data);
         TU_VERIFY(len > 0);
@@ -344,7 +339,6 @@ bool mtpd_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t 
       break;
 
     case MTP_REQ_RESET:
-      TU_LOG_DRV("  MTP request: Device Reset\n");
       // used by the host to return the Still Image Capture Device to the Idle state after the Bulk-pipe has stalled
       if (stage == CONTROL_STAGE_SETUP) {
         // clear stalled
@@ -361,7 +355,6 @@ bool mtpd_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t 
       break;
 
     case MTP_REQ_GET_DEVICE_STATUS: {
-      TU_LOG_DRV("  MTP request: Get Device Status\n");
       if (stage == CONTROL_STAGE_SETUP) {
         const int32_t len = tud_mtp_request_get_device_status_cb(&cb_data);
         TU_VERIFY(len > 0);
@@ -389,7 +382,6 @@ bool mtpd_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t event, uint32_t
 
 #if CFG_TUSB_DEBUG >= CFG_TUD_MTP_LOG_LEVEL
   const uint16_t code = (p_mtp->phase == MTP_PHASE_COMMAND) ? p_container->header.code : p_mtp->command.header.code;
-  TU_LOG_DRV("  MTP %s: %s phase\r\n", (const char *) tu_lookup_find(&_mtp_op_table, code),
     _mtp_phase_str[p_mtp->phase]);
 #endif
 
@@ -445,12 +437,10 @@ bool mtpd_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t event, uint32_t
       const bool is_complete =
         (xferred_bytes == 0 || xferred_bytes < threshold || p_mtp->xferred_len >= p_mtp->total_len);
 
-      TU_LOG_DRV("  MTP Data %s CB: xferred_bytes=%lu, xferred_len/total_len=%lu/%lu, is_complete=%d\r\n",
                  is_data_in ? "IN" : "OUT", xferred_bytes, p_mtp->xferred_len, p_mtp->total_len, is_complete ? 1 : 0);
 
       // Send/queue ZLP if packet is full-sized but transfer is complete
       if (is_complete && xferred_bytes > 0 && !(xferred_bytes & (threshold - 1))) {
-        TU_LOG_DRV("  queue ZLP\r\n");
         TU_VERIFY(usbd_edpt_claim(p_mtp->rhport, ep_addr));
         TU_ASSERT(usbd_edpt_xfer(p_mtp->rhport, ep_addr, NULL, 0, false));
         return true;

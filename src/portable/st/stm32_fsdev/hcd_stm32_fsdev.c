@@ -566,7 +566,6 @@ bool hcd_edpt_close(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr) {
 bool hcd_edpt_xfer(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr, uint8_t *buffer, uint16_t buflen) {
   (void) rhport;
 
-  TU_LOG(FSDEV_DEBUG, "hcd_edpt_xfer addr=%u ep=0x%02X len=%u\r\n", dev_addr, ep_addr, buflen);
 
   uint8_t const ep_id = endpoint_find(dev_addr, ep_addr);
   TU_ASSERT(ep_id != TUSB_INDEX_INVALID_8);

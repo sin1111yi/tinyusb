@@ -479,9 +479,6 @@ bool hcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
 
   tuh_max3421_int_api(rhport, false);
 
-  TU_LOG2_INT(sizeof(max3421_ep_t));
-  TU_LOG2_INT(sizeof(max3421_data_t));
-  TU_LOG2_INT(offsetof(max3421_data_t, ep));
 
   tu_memclr(&_hcd_data, sizeof(_hcd_data));
   _hcd_data.peraddr = 0xff; // invalid
@@ -498,7 +495,6 @@ bool hcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
   // v1 is 0x01, v2 is 0x12, v3 is 0x13
   // Note: v1 and v2 has host OUT errata whose workaround is not implemented in this driver
   uint8_t const revision = reg_read(rhport, REVISION_ADDR, false);
-  TU_LOG2_HEX(revision);
   TU_ASSERT(revision == 0x01 || revision == 0x12 || revision == 0x13, false);
 
   // reset
@@ -827,7 +823,6 @@ static void handle_connect_irq(uint8_t rhport, bool in_isr) {
   uint8_t const jk = hrsl & (HRSL_JSTATUS | HRSL_KSTATUS);
 
   uint8_t new_mode = MODE_DPPULLDN | MODE_DMPULLDN | MODE_HOST;
-  TU_LOG2_HEX(jk);
 
   switch(jk) {
     case 0x00:                          // SEO is disconnected
@@ -850,9 +845,7 @@ static void handle_connect_irq(uint8_t rhport, bool in_isr) {
       // However, since we are always in full speed mode, we can just check J-state
       if (jk == HRSL_KSTATUS) {
         new_mode |= MODE_LOWSPEED;
-        TU_LOG3("Low speed\r\n");
       }else {
-        TU_LOG3("Full speed\r\n");
       }
       new_mode |= MODE_SOFKAENAB;
       mode_write(rhport, new_mode, in_isr);
@@ -947,7 +940,6 @@ static void handle_xfer_done(uint8_t rhport, bool in_isr) {
       break;
 
     default:
-      TU_LOG3("HRSL: %02X\r\n", hrsl);
       xfer_result = XFER_RESULT_FAILED;
       break;
   }
@@ -1001,18 +993,8 @@ static void handle_xfer_done(uint8_t rhport, bool in_isr) {
 
 #if CFG_TUSB_DEBUG >= 3
 void print_hirq(uint8_t hirq) {
-  TU_LOG3_HEX(hirq);
 
-  if (hirq & HIRQ_HXFRDN_IRQ)   TU_LOG3(" HXFRDN");
-  if (hirq & HIRQ_FRAME_IRQ)    TU_LOG3(" FRAME");
-  if (hirq & HIRQ_CONDET_IRQ)   TU_LOG3(" CONDET");
-  if (hirq & HIRQ_SUSDN_IRQ)    TU_LOG3(" SUSDN");
-  if (hirq & HIRQ_SNDBAV_IRQ)   TU_LOG3(" SNDBAV");
-  if (hirq & HIRQ_RCVDAV_IRQ)   TU_LOG3(" RCVDAV");
-  if (hirq & HIRQ_RWU_IRQ)      TU_LOG3(" RWU");
-  if (hirq & HIRQ_BUSEVENT_IRQ) TU_LOG3(" BUSEVENT");
 
-  TU_LOG3("\r\n");
 }
 #else
   #define print_hirq(hirq)

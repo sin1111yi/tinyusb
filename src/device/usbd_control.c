@@ -176,7 +176,7 @@ bool usbd_control_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result,
     if (_ctrl_xfer.buffer != _ctrl_epbuf.buf) {
       memcpy(_ctrl_xfer.buffer, _ctrl_epbuf.buf, xferred_bytes);
     }
-    TU_LOG_MEM(CFG_TUD_LOG_LEVEL, _ctrl_xfer.buffer, xferred_bytes, 2);
+    TU_LOG_INFO("Control OUT: %u bytes", xferred_bytes);
   }
 
   _ctrl_xfer.total_xferred += (uint16_t) xferred_bytes;

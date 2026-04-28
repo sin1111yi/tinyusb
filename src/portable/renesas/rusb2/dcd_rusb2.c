@@ -432,7 +432,6 @@ static bool process_pipe_xfer(rusb2_reg_t* rusb, int buffer_type, uint8_t ep_add
     }
   }
 
-  //  TU_LOG2("X %x %d %d\r\n", ep_addr, total_bytes, buffer_type);
   return true;
 }
 
@@ -479,7 +478,6 @@ static void process_pipe_brdy(uint8_t rhport, unsigned num)
     dcd_event_xfer_complete(rhport, pipe->ep,
                             pipe->length - pipe->remaining,
                             XFER_RESULT_SUCCESS, true);
-    //  TU_LOG1("C %d %d\r\n", num, pipe->length - pipe->remaining);
   }
 }
 
@@ -519,7 +517,6 @@ static void process_bus_reset(uint8_t rhport)
   }
   tu_varclr(&_dcd);
 
-  TU_LOG3("Bus reset, RHST = %u\r\n", rusb->DVSTCTR0_b.RHST);
   tusb_speed_t speed;
   switch(rusb->DVSTCTR0 & RUSB2_DVSTCTR0_RHST_Msk) {
     case RUSB2_DVSTCTR0_RHST_LS:
@@ -760,7 +757,6 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const * ep_desc)
     *ctr = RUSB2_PIPE_CTR_PID_BUF;
   }
 
-  // TU_LOG1("O %d %x %x\r\n", rusb->PIPESEL, rusb->PIPECFG, rusb->PIPEMAXP);
   dcd_int_enable(rhport);
 
   return true;

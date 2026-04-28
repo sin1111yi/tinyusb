@@ -88,7 +88,6 @@ static uint8_t samd_configure_pipe(uint8_t dev_addr, uint8_t ep_addr)
         : tu_edpt_number(ep_addr) == 0          ? USB_HOST_PCFG_PTOKEN_SETUP
                                                 : USB_HOST_PCFG_PTOKEN_OUT;
 
-  TU_LOG3("samd_configure_pipe(token=%02X, dev_addr=%02X, ep_addr=%02X)=", token, dev_addr, ep_addr);
 
   // find already allocated pipe
   for (pipe = 0; pipe < USB_PIPE_NUM; pipe++) {
@@ -113,10 +112,8 @@ static uint8_t samd_configure_pipe(uint8_t dev_addr, uint8_t ep_addr)
 
   // no pipe available :(
   if (pipe >= USB_PIPE_NUM) {
-    TU_LOG3("ERR_NO_PIPE\r\n");
     return pipe;
   }
-  TU_LOG3("%d\r\n", pipe);
 
   // no transfer should be in progress
   TU_ASSERT(((USB->HOST.HostPipe[pipe].PCFG.bit.PTYPE == USB_HOST_PTYPE_DIS) ||
@@ -194,7 +191,6 @@ static bool samd_on_xfer(uint8_t pipe, xfer_result_t xfer_result)
     xfer_delta = 0;
   }
 
-  TU_LOG3("samd_on_xfer(%d, result=%d, xdelta=%d, rem=%d)\r\n", xfer_result, pipe, xfer_delta, pipe_status->xfer_remaining);
 
   // update pipe status
   if (xfer_delta > pipe_status->xfer_remaining) {
@@ -258,23 +254,18 @@ void hcd_int_handler(uint8_t rhport, bool in_isr)
     USB->HOST.INTFLAG.reg = USB_HOST_INTFLAG_HSOF;
   }
   if (int_flags & USB_HOST_INTFLAG_RST) {
-    TU_LOG2("USB_HOST_INTFLAG_RST\r\n");
     USB->HOST.INTFLAG.reg = USB_HOST_INTFLAG_RST;
   }
   if (int_flags & USB_HOST_INTFLAG_WAKEUP) {
-    TU_LOG3("USB_HOST_INTFLAG_WAKEUP\r\n");
     USB->HOST.INTFLAG.reg = USB_HOST_INTFLAG_WAKEUP;
   }
   if (int_flags & USB_HOST_INTFLAG_DNRSM) {
-    TU_LOG3("USB_HOST_INTFLAG_DNRSM\r\n");
     USB->HOST.INTFLAG.reg = USB_HOST_INTFLAG_DNRSM;
   }
   if (int_flags & USB_HOST_INTFLAG_UPRSM) {
-    TU_LOG3("USB_HOST_INTFLAG_UPRSM\r\n");
     USB->HOST.INTFLAG.reg = USB_HOST_INTFLAG_UPRSM;
   }
   if (int_flags & USB_HOST_INTFLAG_RAMACER) {
-    TU_LOG1("USB_HOST_INTFLAG_RAMACER\r\n");
     USB->HOST.INTFLAG.reg = USB_HOST_INTFLAG_RAMACER;
   }
   if (int_flags & USB_HOST_INTFLAG_DCONN) {
@@ -312,17 +303,14 @@ void hcd_int_handler(uint8_t rhport, bool in_isr)
       xfer_result = XFER_RESULT_SUCCESS;
     }
     if (pint_flags & USB_HOST_PINTFLAG_STALL) {
-      TU_LOG2("USB_HOST_PINTFLAG_STALL\r\n");
       USB->HOST.HostPipe[pipe].PINTFLAG.reg = USB_HOST_PINTFLAG_STALL;
       xfer_result = XFER_RESULT_STALLED;
     }
     if (pint_flags & USB_HOST_PINTFLAG_TRFAIL) {
       USB->HOST.HostPipe[pipe].PINTFLAG.reg = USB_HOST_PINTFLAG_TRFAIL;
       if (usb_pipe_table[pipe].HostDescBank[0].STATUS_BK.reg & USB_HOST_STATUS_BK_ERRORFLOW) {
-        TU_LOG1("USB_HOST_STATUS_BK_ERRORFLOW\r\n");
         xfer_result = XFER_RESULT_FAILED;
       } else if (usb_pipe_table[pipe].HostDescBank[0].STATUS_BK.reg & USB_HOST_STATUS_BK_CRCERR) {
-        TU_LOG1("USB_HOST_STATUS_BK_CRCERR\r\n");
         xfer_result = XFER_RESULT_FAILED;
       } else {
         // SAMD Quirk #1:
@@ -338,22 +326,18 @@ void hcd_int_handler(uint8_t rhport, bool in_isr)
     // Check STATUS_PIPE
     //
     if (usb_pipe_table[pipe].HostDescBank[0].STATUS_PIPE.reg & USB_HOST_STATUS_PIPE_DTGLER) {
-      TU_LOG1("USB_HOST_STATUS_PIPE_DTGLER\r\n");
       usb_pipe_table[pipe].HostDescBank[0].STATUS_PIPE.reg &= ~USB_HOST_STATUS_PIPE_DTGLER;
       xfer_result = XFER_RESULT_FAILED;
     }
     if (usb_pipe_table[pipe].HostDescBank[0].STATUS_PIPE.reg & USB_HOST_STATUS_PIPE_DAPIDER) {
-      TU_LOG1("USB_HOST_STATUS_PIPE_DAPIDER\r\n");
       usb_pipe_table[pipe].HostDescBank[0].STATUS_PIPE.reg &= ~USB_HOST_STATUS_PIPE_DAPIDER;
       xfer_result = XFER_RESULT_FAILED;
     }
     if (usb_pipe_table[pipe].HostDescBank[0].STATUS_PIPE.reg & USB_HOST_STATUS_PIPE_PIDER) {
-      TU_LOG1("USB_HOST_STATUS_PIPE_PIDER\r\n");
       usb_pipe_table[pipe].HostDescBank[0].STATUS_PIPE.reg &= ~USB_HOST_STATUS_PIPE_PIDER;
       xfer_result = XFER_RESULT_FAILED;
     }
     if (usb_pipe_table[pipe].HostDescBank[0].STATUS_PIPE.reg & USB_HOST_STATUS_PIPE_CRC16ER) {
-      TU_LOG1("USB_HOST_STATUS_PIPE_CRC16ER\r\n");
       usb_pipe_table[pipe].HostDescBank[0].STATUS_PIPE.reg &= ~USB_HOST_STATUS_PIPE_CRC16ER;
       xfer_result = XFER_RESULT_FAILED;
     }
@@ -692,7 +676,6 @@ bool hcd_edpt_abort_xfer(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr)
   uint8_t pipe;
   volatile usb_pipe_status_t* pipe_status;
 
-  TU_LOG3("hcd_edpt_abort_xfer(dev_addr=%02X, ep_addr=%02X)=", dev_addr, ep_addr);
 
   // find the pipe
   for (pipe = 0; pipe < USB_PIPE_NUM; pipe++) {
@@ -704,10 +687,8 @@ bool hcd_edpt_abort_xfer(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr)
 
   // pipe not found
   if (pipe >= USB_PIPE_NUM) {
-    TU_LOG3("ERR_NO_PIPE\r\n");
     return false;
   }
-  TU_LOG3("%d\r\n", pipe);
 
   // no transfer in progress
   if (USB->HOST.HostPipe[pipe].PSTATUS.bit.PFREEZE == 1) {
@@ -731,7 +712,6 @@ bool hcd_edpt_clear_stall(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr)
   uint8_t pipe;
   volatile usb_pipe_status_t* pipe_status;
 
-  TU_LOG3("hcd_edpt_clear_stall(dev_addr=%02X, ep_addr=%02X)=", dev_addr, ep_addr);
 
   // find the pipe
   for (pipe = 0; pipe < USB_PIPE_NUM; pipe++) {
@@ -743,10 +723,8 @@ bool hcd_edpt_clear_stall(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr)
 
   // pipe not found
   if (pipe >= USB_PIPE_NUM) {
-    TU_LOG3("ERR_NO_PIPE\r\n");
     return false;
   }
-  TU_LOG3("%d\r\n", pipe);
 
   // clear pending interrupts
   USB->HOST.HostPipe[pipe].PINTFLAG.reg |= USB->HOST.HostPipe[pipe].PINTFLAG.reg;

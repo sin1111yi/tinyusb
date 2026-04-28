@@ -99,7 +99,6 @@ void rp2usb_init(void) {
   rp2040_chipversion = rp2040_chip_version();
   #endif
 
-  TU_LOG2_INT(sizeof(hw_endpoint_t));
 
   critical_section_init(&rp2usb_lock);
 }
@@ -222,7 +221,6 @@ void rp2usb_xfer_start(hw_endpoint_t *ep, io_rw_32 *ep_reg, io_rw_32 *buf_reg, u
   hw_endpoint_lock_update(ep, 1);
 
   if (ep->state == EPSTATE_ACTIVE) {
-    TU_LOG(1, "WARN: starting new transfer on already active ep %02X\r\n", ep->ep_addr);
     rp2usb_reset_transfer(ep);
   }
 
@@ -469,7 +467,6 @@ static bool __tusb_irq_path_func(e15_is_critical_frame_period)(void) {
   if (delta < 800 || delta > 998) {
     return false;
   }
-  // TU_LOG(3, "Avoiding sof %lu now %lu last %lu\r\n", (usb_hw->sof_rd + 1) & USB_SOF_RD_BITS, time_us_32(),
   // e15_last_sof);
   return true;
 }

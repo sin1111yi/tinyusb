@@ -64,7 +64,6 @@ TU_ATTR_ALIGNED(4) static uint8_t USBFS_TX_Buf[USBFS_TX_BUF_LEN];
     while (true) {}                           \
   } while (false)
 
-#define LOG_CH32_USBFSH(...) TU_LOG3(__VA_ARGS__)
 
 // Busywait for delay microseconds/nanoseconds
 TU_ATTR_ALWAYS_INLINE static inline void loopdelay(uint32_t count) {
@@ -206,7 +205,6 @@ static void hardware_init_host(bool enabled) {
 }
 
 static bool hardware_start_xfer(uint8_t pid, uint8_t ep_addr, uint8_t data_toggle) {
-  LOG_CH32_USBFSH("hardware_start_xfer(pid=%s(0x%02x), ep_addr=0x%02x, toggle=%d)\r\n",
                   pid == USB_PID_IN ? "IN" : pid == USB_PID_OUT ? "OUT"
                                          : pid == USB_PID_SETUP ? "SETUP"
                                                                 : "(other)",
@@ -238,7 +236,6 @@ static void hardware_update_device_address(uint8_t dev_addr) {
 
 /** Set port speed */
 static void hardware_update_port_speed(tusb_speed_t speed) {
-  LOG_CH32_USBFSH("hardware_update_port_speed(%s)\r\n", speed == TUSB_SPEED_FULL ? "Full" : speed == TUSB_SPEED_LOW ? "Low"
                                                                                                                     : "(invalid)");
   switch (speed) {
     case TUSB_SPEED_LOW:
@@ -292,7 +289,6 @@ static bool int_state_for_portreset = false;
 
 void hcd_port_reset(uint8_t rhport) {
   (void) rhport;
-  LOG_CH32_USBFSH("hcd_port_reset()\r\n");
   int_state_for_portreset = interrupt_enabled;
   // NVIC_DisableIRQ(USBFS_IRQn);
   hcd_int_disable(rhport);
@@ -307,7 +303,6 @@ void hcd_port_reset(uint8_t rhport) {
 
 void hcd_port_reset_end(uint8_t rhport) {
   (void) rhport;
-  LOG_CH32_USBFSH("hcd_port_reset_end()\r\n");
 
   USBOTG_H_FS->HOST_CTRL &= ~USBFS_UH_BUS_RESET;
   tusb_time_delay_ms_api(2);
@@ -347,7 +342,6 @@ tusb_speed_t hcd_port_speed_get(uint8_t rhport) {
 // Close all opened endpoint belong to this device
 void hcd_device_close(uint8_t rhport, uint8_t dev_addr) {
   (void) rhport;
-  LOG_CH32_USBFSH("hcd_device_close(%d, 0x%02x)\r\n", rhport, dev_addr);
   remove_edpt_record_for_device(dev_addr);
 }
 
@@ -371,7 +365,6 @@ void hcd_int_disable(uint8_t rhport) {
 
 
 static void xfer_retry(void* _params) {
-  LOG_CH32_USBFSH("xfer_retry()\r\n");
   usb_edpt_t* edpt_info = (usb_edpt_t*)_params;
   if (usb_current_xfer_info.nak_pending) {
     usb_current_xfer_info.nak_pending = false;
@@ -400,7 +393,6 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
     USBOTG_H_FS->INT_FG = USBFS_UIF_DETECT;
     // Read the detection state
     bool attached = hardware_device_attached();
-    LOG_CH32_USBFSH("hcd_int_handler() attached = %d\r\n", attached ? 1 : 0);
     if (attached) {
       hcd_event_device_attach(rhport, true);
     } else {
@@ -421,7 +413,6 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
     // Clear register to stop transfer
     // USBOTG_H_FS->HOST_EP_PID = 0x00;
 
-    LOG_CH32_USBFSH("hcd_int_handler() pid_edpt=0x%02x\r\n", pid_edpt);
 
     uint8_t request_pid = pid_edpt >> 4;
     uint8_t response_pid = status & USBFS_UIS_H_RES_MASK;
@@ -445,12 +436,10 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
           usb_current_xfer_info.bufferlen -= tx_len;
           usb_current_xfer_info.xferred_len += tx_len;
           if (usb_current_xfer_info.bufferlen == 0) {
-            LOG_CH32_USBFSH("USB_PID_%s completed %d bytes\r\n", request_pid == USB_PID_OUT ? "OUT" : "SETUP", usb_current_xfer_info.xferred_len);
             usb_current_xfer_info.is_busy = false;
             hcd_event_xfer_complete(dev_addr, ep_addr, usb_current_xfer_info.xferred_len, XFER_RESULT_SUCCESS, in_isr);
             return;
           } else {
-            LOG_CH32_USBFSH("USB_PID_OUT continue...\r\n");
             usb_current_xfer_info.buffer += tx_len;
             uint16_t copylen = TU_MIN(edpt_info->max_packet_size, usb_current_xfer_info.bufferlen);
             memcpy(USBFS_TX_Buf, usb_current_xfer_info.buffer, copylen);
@@ -462,7 +451,6 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
           uint16_t received_len = USBOTG_H_FS->RX_LEN;
           usb_current_xfer_info.xferred_len += received_len;
           uint16_t xferred_len = usb_current_xfer_info.xferred_len;
-          LOG_CH32_USBFSH("Read %d bytes\r\n", received_len);
           // if (received_len > 0 && (usb_current_xfer_info.buffer == NULL || usb_current_xfer_info.bufferlen == 0)) {
           //     PANIC("Data received but buffer not set\r\n");
           // }
@@ -470,19 +458,16 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
           usb_current_xfer_info.buffer += received_len;
           if ((received_len < edpt_info->max_packet_size) || (xferred_len == usb_current_xfer_info.bufferlen)) {
             // USB device sent all data.
-            LOG_CH32_USBFSH("USB_PID_IN completed\r\n");
             usb_current_xfer_info.is_busy = false;
             hcd_event_xfer_complete(dev_addr, ep_addr, xferred_len, XFER_RESULT_SUCCESS, in_isr);
             return;
           } else {
             // USB device may send more data.
-            LOG_CH32_USBFSH("Read more data\r\n");
             hardware_start_xfer(USB_PID_IN, ep_addr, edpt_info->data_toggle);
             return;
           }
         }
         default: {
-          LOG_CH32_USBFSH("hcd_int_handler() L%d: unexpected response PID: 0x%02x\r\n", __LINE__, response_pid);
           usb_current_xfer_info.is_busy = false;
           hcd_event_xfer_complete(dev_addr, ep_addr, 0, XFER_RESULT_FAILED, in_isr);
           return;
@@ -490,13 +475,11 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
       }
     } else {
       if (response_pid == USB_PID_STALL) {
-        LOG_CH32_USBFSH("STALL response\r\n");
         hcd_edpt_clear_stall(0, dev_addr, ep_addr);
         edpt_info->data_toggle = 0;
         hardware_start_xfer(request_pid, ep_addr, 0);
         return;
       } else if (response_pid == USB_PID_NAK) {
-        LOG_CH32_USBFSH("NAK reposense\r\n");
         uint32_t elapsed_time = tusb_time_millis_api() - usb_current_xfer_info.start_ms;
         (void)elapsed_time;
         if (edpt_info->xfer_type == TUSB_XFER_INTERRUPT) {
@@ -525,12 +508,10 @@ void hcd_int_handler(uint8_t rhport, bool in_isr) {
         }
         return;
       } else if (response_pid == USB_PID_DATA0 || response_pid == USB_PID_DATA1) {
-        LOG_CH32_USBFSH("Data toggle mismatched and DATA0/1 (not STALL). RX_LEN=%d\r\n", USBOTG_H_FS->RX_LEN);
         usb_current_xfer_info.is_busy = false;
         hcd_event_xfer_complete(dev_addr, ep_addr, 0, XFER_RESULT_FAILED, in_isr);
         return;
       } else {
-        LOG_CH32_USBFSH("hcd_int_handler() L%d: unexpected response PID: 0x%02x\r\n", __LINE__, response_pid);
         usb_current_xfer_info.is_busy = false;
         hcd_event_xfer_complete(dev_addr, ep_addr, 0, XFER_RESULT_FAILED, in_isr);
         return;
@@ -549,7 +530,6 @@ bool hcd_edpt_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_endpoint_t const 
   uint8_t ep_num = tu_edpt_number(ep_addr);
   uint16_t max_packet_size = ep_desc->wMaxPacketSize;
   uint8_t xfer_type = ep_desc->bmAttributes.xfer;
-  LOG_CH32_USBFSH("hcd_edpt_open(rhport=%d, dev_addr=0x%02x, %p) EndpointAdderss=0x%02x,maxPacketSize=%d,xfer_type=%d\r\n", rhport, dev_addr, ep_desc, ep_addr, max_packet_size, xfer_type);
 
   while (usb_current_xfer_info.is_busy) { }
 
@@ -571,7 +551,6 @@ bool hcd_edpt_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_endpoint_t const 
 bool hcd_edpt_xfer(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr, uint8_t *buffer, uint16_t buflen) {
   (void) rhport;
 
-  LOG_CH32_USBFSH("hcd_edpt_xfer(%d, 0x%02x, 0x%02x, ...)\r\n", rhport, dev_addr, ep_addr);
 
   while (usb_current_xfer_info.is_busy) {}
   usb_current_xfer_info.is_busy = true;
@@ -590,10 +569,8 @@ bool hcd_edpt_xfer(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr, uint8_t *b
   usb_current_xfer_info.nak_pending = false;
 
   if (tu_edpt_dir(ep_addr) == TUSB_DIR_IN) {
-    LOG_CH32_USBFSH("hcd_edpt_xfer(): READ, dev_addr=0x%02x, ep_addr=0x%02x, len=%d\r\n", dev_addr, ep_addr, buflen);
     return hardware_start_xfer(USB_PID_IN, ep_addr, edpt_info->data_toggle);
   } else {
-    LOG_CH32_USBFSH("hcd_edpt_xfer(): WRITE, dev_addr=0x%02x, ep_addr=0x%02x, len=%d\r\n", dev_addr, ep_addr, buflen);
     uint16_t copylen = TU_MIN(edpt_info->max_packet_size, buflen);
     USBOTG_H_FS->HOST_TX_LEN = copylen;
     memcpy(USBFS_TX_Buf, buffer, copylen);
@@ -616,7 +593,6 @@ bool hcd_setup_send(uint8_t rhport, uint8_t dev_addr, uint8_t const setup_packet
 
   usb_current_xfer_info.is_busy = true;
 
-  LOG_CH32_USBFSH("hcd_setup_send(rhport=%d, dev_addr=0x%02x, %p)\r\n", rhport, dev_addr, setup_packet);
 
   hardware_set_port_address_speed(dev_addr);
 
@@ -650,7 +626,6 @@ bool hcd_setup_send(uint8_t rhport, uint8_t dev_addr, uint8_t const setup_packet
 bool hcd_edpt_clear_stall(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr) {
   (void) rhport;
   (void) dev_addr;
-  LOG_CH32_USBFSH("hcd_edpt_clear_stall(rhport=%d, dev_addr=0x%02x, ep_addr=0x%02x)\r\n", rhport, dev_addr, ep_addr);
   uint8_t edpt_num = tu_edpt_number(ep_addr);
   uint8_t setup_request_clear_stall[8] = {
       0x02, 0x01, 0x00, 0x00, edpt_num, 0x00, 0x00, 0x00
@@ -667,7 +642,6 @@ bool hcd_edpt_clear_stall(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr) {
   USBOTG_H_FS->HOST_EP_PID = 0;
   uint8_t response_pid = USBOTG_H_FS->INT_ST & USBFS_UIS_H_RES_MASK;
   (void) response_pid;
-  LOG_CH32_USBFSH("hcd_edpt_clear_stall() response pid=0x%02x\r\n", response_pid);
 
   if (prev_int_state) {
     hcd_int_enable(0);

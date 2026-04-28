@@ -42,7 +42,6 @@
   #define CFG_TUD_DFU_LOG_LEVEL   CFG_TUD_LOG_LEVEL
 #endif
 
-#define TU_LOG_DRV(...)   TU_LOG(CFG_TUD_DFU_LOG_LEVEL, __VA_ARGS__)
 
 //--------------------------------------------------------------------+
 // INTERNAL OBJECT & FUNCTION DECLARATION
@@ -227,7 +226,6 @@ uint16_t dfu_moded_open(uint8_t rhport, const tusb_desc_interface_t* itf_desc, u
 // return false to stall control endpoint (e.g unsupported request)
 bool dfu_moded_control_xfer_cb(uint8_t rhport, uint8_t stage, const tusb_control_request_t* request) {
   TU_VERIFY(request->bmRequestType_bit.recipient == TUSB_REQ_RCPT_INTERFACE);
-  TU_LOG_DRV("  DFU State  : %s, Status: %s\r\n", tu_lookup_find(&_dfu_state_table, _dfu_ctx.state), tu_lookup_find(&_dfu_status_table, _dfu_ctx.status));
 
   if (request->bmRequestType_bit.type == TUSB_REQ_TYPE_STANDARD) {
     // Standard request include GET/SET_INTERFACE
@@ -251,7 +249,6 @@ bool dfu_moded_control_xfer_cb(uint8_t rhport, uint8_t stage, const tusb_control
       default: return false;
     }
   } else if (request->bmRequestType_bit.type == TUSB_REQ_TYPE_CLASS) {
-    TU_LOG_DRV("  DFU Request: %s\r\n", tu_lookup_find(&_dfu_request_table, request->bRequest));
 
     // Class request
     switch (request->bRequest) {

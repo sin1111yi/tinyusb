@@ -59,7 +59,6 @@ static void reset_core(dwc2_regs_t* dwc2) {
 
 // Dedicated FS PHY is internal with a clock 48Mhz.
 static void phy_fs_init(dwc2_regs_t* dwc2) {
-  TU_LOG(DWC2_COMMON_DEBUG, "Fullspeed PHY init\r\n");
 
   uint32_t gusbcfg = dwc2->gusbcfg;
 
@@ -107,7 +106,6 @@ static void phy_hs_init(dwc2_regs_t* dwc2) {
   gusbcfg &= ~GUSBCFG_PHYSEL;
 
   if (ghwcfg2.hs_phy_type == GHWCFG2_HSPHY_ULPI) {
-    TU_LOG(DWC2_COMMON_DEBUG, "Highspeed ULPI PHY init\r\n");
 
     // Select ULPI PHY (external)
     gusbcfg |= GUSBCFG_ULPI_UTMI_SEL;
@@ -124,7 +122,6 @@ static void phy_hs_init(dwc2_regs_t* dwc2) {
     // Disable FS/LS ULPI
     gusbcfg &= ~(GUSBCFG_ULPIFSLS | GUSBCFG_ULPICSM);
   } else {
-    TU_LOG(DWC2_COMMON_DEBUG, "Highspeed UTMI+ PHY init\r\n");
 
     // Select UTMI+ PHY (internal)
     gusbcfg &= ~GUSBCFG_ULPI_UTMI_SEL;
@@ -159,14 +156,10 @@ static void phy_hs_init(dwc2_regs_t* dwc2) {
 
 static bool check_dwc2(dwc2_regs_t* dwc2) {
 #if CFG_TUSB_DEBUG >= DWC2_COMMON_DEBUG
-  // print guid, gsnpsid, ghwcfg1, ghwcfg2, ghwcfg3, ghwcfg4
-  // Run 'python dwc2_info.py' and check dwc2_info.md for bit-field value and comparison with other ports
   volatile uint32_t const* p = (volatile uint32_t const*) &dwc2->guid;
-  TU_LOG1("guid, gsnpsid, ghwcfg1, ghwcfg2, ghwcfg3, ghwcfg4\r\n");
-  for (size_t i = 0; i < 5; i++) {
-    TU_LOG1("0x%08" PRIX32 ", ", p[i]);
-  }
-  TU_LOG1("0x%08" PRIX32 "\r\n", p[5]);
+  TU_LOG_INFO("[DWC2] guid=0x%08lX gsnpsid=0x%08lX ghwcfg1=0x%08lX ghwcfg2=0x%08lX ghwcfg3=0x%08lX ghwcfg4=0x%08lX",
+              p[0], p[1], p[2], p[3], p[4], p[5]);
+  // Run 'python dwc2_info.py' and check dwc2_info.md for bit-field value and comparison with other ports
 #endif
 
   // For some reason: GD32VF103 gsnpsid and all hwcfg register are always zero (skip it)
@@ -202,12 +195,17 @@ bool dwc2_core_init(uint8_t rhport, bool is_hs_phy, bool is_dma) {
   // Check Synopsys ID register, failed if controller clock/power is not enabled
   TU_ASSERT(check_dwc2(dwc2));
 
+  TU_LOG_INFO("[DWC2] Core init rhport=%u is_hs_phy=%d is_dma=%d", rhport, is_hs_phy, is_dma);
+
   // disable global interrupt
   dwc2->gahbcfg &= ~GAHBCFG_GINT;
 
   if (is_hs_phy) {
+    TU_LOG_INFO("[DWC2] HS PHY init (%s)",
+                (dwc2->ghwcfg2 & GHWCFG2_HSPHY_ULPI) ? "ULPI" : "UTMI+");
     phy_hs_init(dwc2);
   } else {
+    TU_LOG_INFO("[DWC2] FS PHY init (dedicated FS)");
     phy_fs_init(dwc2);
   }
 
@@ -223,6 +221,7 @@ bool dwc2_core_init(uint8_t rhport, bool is_hs_phy, bool is_dma) {
   // Enable PHY clock TODO stop/gate clock when suspended mode
   dwc2->pcgcctl &= ~(PCGCCTL_STOPPCLK | PCGCCTL_GATEHCLK | PCGCCTL_PWRCLMP | PCGCCTL_RSTPDWNMODULE);
 
+  TU_LOG_INFO("[DWC2] Flush FIFOs");
   dfifo_flush_tx(dwc2, 0x10); // all tx fifo
   dfifo_flush_rx(dwc2);
 
@@ -231,20 +230,24 @@ bool dwc2_core_init(uint8_t rhport, bool is_hs_phy, bool is_dma) {
   dwc2->gotgint = 0xFFFFFFFFU;
   dwc2->gintmsk = 0;
 
-  TU_LOG(DWC2_COMMON_DEBUG, "DMA = %u\r\n", is_dma);
 
   if (is_dma) {
+    TU_LOG_INFO("[DWC2] DMA mode enabled");
     // DMA seems to be only settable after a core reset, and not possible to switch on-the-fly
     dwc2->gahbcfg |= GAHBCFG_DMAEN | GAHBCFG_HBSTLEN_2;
   } else {
+    TU_LOG_INFO("[DWC2] Slave mode enabled");
     dwc2->gintmsk |= GINTSTS_RXFLVL;
   }
 
+  TU_LOG_INFO("[DWC2] Core init complete");
   return true;
 }
 
 void dwc2_core_deinit(uint8_t rhport) {
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
+
+  TU_LOG_INFO("[DWC2] Core deinit rhport=%u", rhport);
 
   // Disable global interrupt
   dwc2->gahbcfg &= ~GAHBCFG_GINT;

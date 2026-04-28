@@ -38,7 +38,6 @@
   #define CFG_TUH_MIDI_LOG_LEVEL   CFG_TUH_LOG_LEVEL
 #endif
 
-#define TU_LOG_DRV(...)   TU_LOG(CFG_TUH_MIDI_LOG_LEVEL, __VA_ARGS__)
 
 //--------------------------------------------------------------------+
 // Weak stubs: invoked if no strong implementation is available
@@ -141,7 +140,6 @@ void midih_close(uint8_t daddr) {
   for (uint8_t idx = 0; idx < CFG_TUH_MIDI; idx++) {
     midih_interface_t* p_midi = &_midi_host[idx];
     if (p_midi->daddr == daddr) {
-      TU_LOG_DRV("  MIDI close addr = %u index = %u\r\n", daddr, idx);
       tuh_midi_umount_cb(idx);
 
       p_midi->bInterfaceNumber = 0;
@@ -243,7 +241,6 @@ uint16_t midih_open(uint8_t rhport, uint8_t dev_addr, const tusb_desc_interface_
   }
   TU_VERIFY(AUDIO_SUBCLASS_MIDI_STREAMING == desc_itf->bInterfaceSubClass, 0);
 
-  TU_LOG_DRV("MIDI opening Interface %u (addr = %u)\r\n", desc_itf->bInterfaceNumber, dev_addr);
   p_midi->bInterfaceNumber = desc_itf->bInterfaceNumber;
   p_midi->iInterface = desc_itf->iInterface;
   p_midi->itf_count++;
@@ -263,13 +260,11 @@ uint16_t midih_open(uint8_t rhport, uint8_t dev_addr, const tusb_desc_interface_
       case TUSB_DESC_CS_INTERFACE:
         switch (tu_desc_subtype(p_desc)) {
           case MIDI_CS_INTERFACE_HEADER:
-            TU_LOG_DRV("  Interface Header descriptor\r\n");
             desc_cb.desc_header = p_desc;
             break;
 
           case MIDI_CS_INTERFACE_IN_JACK:
           case MIDI_CS_INTERFACE_OUT_JACK: {
-            TU_LOG_DRV("  Jack %s %s descriptor \r\n",
                        tu_desc_subtype(p_desc) == MIDI_CS_INTERFACE_IN_JACK ? "IN" : "OUT",
                        p_desc[3] == MIDI_JACK_EXTERNAL ? "External" : "Embedded");
             if (desc_cb.jack_num < TU_ARRAY_SIZE(desc_cb.desc_jack)) {
@@ -279,12 +274,10 @@ uint16_t midih_open(uint8_t rhport, uint8_t dev_addr, const tusb_desc_interface_
           }
 
           case MIDI_CS_INTERFACE_ELEMENT:
-            TU_LOG_DRV("  Element descriptor\r\n");
             desc_cb.desc_element = p_desc;
             break;
 
           default:
-            TU_LOG_DRV("  Unknown CS Interface sub-type %u\r\n", tu_desc_subtype(p_desc));
             break;
         }
         break;
@@ -296,7 +289,6 @@ uint16_t midih_open(uint8_t rhport, uint8_t dev_addr, const tusb_desc_interface_
         TU_VERIFY(tu_desc_in_bounds(p_desc, desc_end), 0);
         const midi_desc_cs_endpoint_t *p_csep = (const midi_desc_cs_endpoint_t *) p_desc;
 
-        TU_LOG_DRV("  Endpoint and CS_Endpoint descriptor %02x\r\n", p_ep->bEndpointAddress);
         tu_edpt_stream_t *ep_stream;
         if (tu_edpt_dir(p_ep->bEndpointAddress) == TUSB_DIR_OUT) {
           p_midi->tx_cable_count = p_csep->bNumEmbMIDIJack;
@@ -533,7 +525,6 @@ uint32_t tuh_midi_stream_write(uint8_t idx, uint8_t cable_num, uint8_t const *bu
       for (uint8_t i = stream->total; i < 4; i++) {
         stream->buffer[i] = 0;
       }
-      TU_LOG3_MEM(stream->buffer, 4, 2);
 
       const uint32_t count = tu_edpt_stream_write(&p_midi->ep_stream.tx, stream->buffer, 4);
 

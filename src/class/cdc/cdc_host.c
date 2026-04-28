@@ -47,9 +47,7 @@
     #define CFG_TUH_CDC_LOG_LEVEL 2
   #endif
 
-  #define TU_LOG_DRV(...) TU_LOG(CFG_TUH_CDC_LOG_LEVEL, __VA_ARGS__)
   #define TU_LOG_CDC(_cdc, _format, ...)                                                \
-    TU_LOG_DRV("[:%u:%u] CDCh %s " _format "\r\n", _cdc->daddr, _cdc->bInterfaceNumber, \
                serial_drivers[_cdc->serial_drid].name, ##__VA_ARGS__)
 
 //--------------------------------------------------------------------+
@@ -645,7 +643,6 @@ bool tuh_cdc_set_line_coding(uint8_t idx, cdc_line_coding_t const *line_coding,
 //--------------------------------------------------------------------+
 
 bool cdch_init(void) {
-  TU_LOG_DRV("sizeof(cdch_interface_t) = %u\r\n", sizeof(cdch_interface_t));
   tu_memclr(cdch_data, sizeof(cdch_data));
   for (size_t i = 0; i < CFG_TUH_CDC; i++) {
     cdch_interface_t *p_cdc = &cdch_data[i];
@@ -763,7 +760,6 @@ uint16_t cdch_open(uint8_t rhport, uint8_t daddr, const tusb_desc_interface_t *i
       for (size_t i = 0; i < driver->vid_pid_count; i++) {
         if (driver->vid_pid_list[i][0] == vid && driver->vid_pid_list[i][1] == pid) {
           const uint16_t drv_len = driver->open(daddr, itf_desc, max_len);
-          TU_LOG_DRV("[:%u:%u] CDCh %s open %s\r\n", daddr, itf_desc->bInterfaceNumber, driver->name,
                      drv_len > 0 ? "OK" : "FAILED");
           return drv_len;
         }
@@ -824,7 +820,6 @@ bool cdch_set_config(uint8_t daddr, uint8_t itf_num) {
 static void cdch_process_set_config(tuh_xfer_t *xfer) {
   cdch_interface_t *p_cdc = get_itf_by_xfer(xfer);
   TU_ASSERT(p_cdc && p_cdc->serial_drid < SERIAL_DRIVER_COUNT,);
-  TU_LOG_DRV("  state = %u\r\n", xfer->user_data);
   const cdch_serial_driver_t *driver = &serial_drivers[p_cdc->serial_drid];
 
   if (!driver->process_set_config(p_cdc, xfer)) {
@@ -893,7 +888,6 @@ static void cdch_process_line_state_on_enum(tuh_xfer_t *xfer) {
 static void cdch_internal_control_complete(tuh_xfer_t *xfer) {
   cdch_interface_t *p_cdc = get_itf_by_xfer(xfer);
   TU_ASSERT(p_cdc && p_cdc->serial_drid < SERIAL_DRIVER_COUNT,);
-  TU_LOG_DRV("  request result = %u\r\n", xfer->result);
   const cdch_serial_driver_t *driver = &serial_drivers[p_cdc->serial_drid];
   driver->request_complete(p_cdc, xfer);
 
@@ -907,7 +901,6 @@ static void cdch_internal_control_complete(tuh_xfer_t *xfer) {
 static void cdch_set_line_coding_stage1_baudrate_complete(tuh_xfer_t *xfer) {
   cdch_interface_t *p_cdc = get_itf_by_xfer(xfer);
   TU_ASSERT(p_cdc && p_cdc->serial_drid < SERIAL_DRIVER_COUNT,);
-  TU_LOG_DRV("  stage1 set baudrate result = %u\r\n", xfer->result);
   const cdch_serial_driver_t *driver = &serial_drivers[p_cdc->serial_drid];
 
   if (xfer->result == XFER_RESULT_SUCCESS) {
@@ -924,7 +917,6 @@ static void cdch_set_line_coding_stage1_baudrate_complete(tuh_xfer_t *xfer) {
 static void cdch_set_line_coding_stage2_data_format_complete(tuh_xfer_t *xfer) {
   cdch_interface_t *p_cdc = get_itf_by_xfer(xfer);
   TU_ASSERT(p_cdc && p_cdc->serial_drid < SERIAL_DRIVER_COUNT,);
-  TU_LOG_DRV("  stage2 set data format result = %u\r\n", xfer->result);
 
   if (xfer->result == XFER_RESULT_SUCCESS) {
     p_cdc->line.coding = p_cdc->requested_line.coding; // update data format
@@ -2155,7 +2147,6 @@ static bool pl2303_process_set_config(cdch_interface_t *p_cdc, tuh_xfer_t *xfer)
       }
       type = pl2303_detect_type(p_cdc, 2); // step 2 now with supports_hx_status
       TU_ASSERT(type != PL2303_TYPE_UNKNOWN);
-      TU_LOG_DRV("  PL2303 type detected: %u\r\n", type);
 
       p_cdc->pl2303.type = type;
       p_cdc->pl2303.quirks |= pl2303_type_data[type].quirks;

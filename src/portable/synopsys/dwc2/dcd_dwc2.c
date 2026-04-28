@@ -229,7 +229,6 @@ static bool dfifo_alloc(uint8_t rhport, uint8_t ep_addr, uint16_t packet_size, b
     // Check if free space is available
     TU_ASSERT(_dcd_data.dfifo_top >= fifo_size + dwc2->grxfsiz);
     _dcd_data.dfifo_top -= fifo_size;
-    // TU_LOG(DWC2_DEBUG, "    TX FIFO %u: allocated %u words at offset %u\r\n", epnum, fifo_size, dfifo_top);
 
     // Both TXFD and TXSA are in unit of 32-bit words.
     if (epnum == 0) {
@@ -442,6 +441,8 @@ bool dcd_configure(uint8_t rhport, uint32_t cfg_id, const void* cfg_param) {
 }
 
 bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
+  TU_LOG_INFO("[DWC2] DCD init rhport=%u", rhport);
+
   dwc2_clock_init(rhport, rh_init->role);
 
   tu_memclr(&_dcd_data, sizeof(_dcd_data));
@@ -456,6 +457,7 @@ bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
   // Set device max speed
   uint32_t dcfg = dwc2->dcfg & ~DCFG_DSPD_Msk;
   if (is_hs_phy) {
+    TU_LOG_INFO("[DWC2] Highspeed PHY selected (ULPI=%d)", (uint8_t)((dwc2->ghwcfg2 & GHWCFG2_HSPHY_ULPI) ? 1 : 0));
     // dcfg Highspeed's mask is 0
 
     // XCVRDLY: transceiver delay between xcvr_sel and txvalid during device chirp is required
@@ -463,9 +465,11 @@ bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
     const dwc2_ghwcfg2_t ghwcfg2 = {.value = dwc2->ghwcfg2};
     if (ghwcfg2.hs_phy_type == GHWCFG2_HSPHY_ULPI) {
       dcfg |= DCFG_XCVRDLY;
+      TU_LOG_INFO("[DWC2] ULPI XCVR delay enabled");
     }
   } else {
     dcfg |= DCFG_DSPD_FS << DCFG_DSPD_Pos;
+    TU_LOG_INFO("[DWC2] Fullspeed PHY selected");
   }
 
   dcfg |= DCFG_NZLSOHSK; // send STALL back and discard if host send non-zlp during control status
@@ -480,6 +484,7 @@ bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
   uint32_t gotgctl = dwc2->gotgctl & ~GOTGCTL_AVALOEN; // Clear A-override
   if (!_tud_cfg.vbus_sensing) {
     gotgctl |= GOTGCTL_BVALOEN | GOTGCTL_BVALOVAL;     // force B Valid if not sensing VBus
+    TU_LOG_INFO("[DWC2] VBUS sensing disabled, B-session valid forced");
   }
   dwc2->gotgctl = gotgctl;
 
@@ -494,11 +499,14 @@ bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
   gahbcfg |= GAHBCFG_GINT; // Enable global interrupt
   dwc2->gahbcfg = gahbcfg;
 
+  TU_LOG_INFO("[DWC2] DCD init complete");
+
   dcd_connect(rhport);
   return true;
 }
 
 bool dcd_deinit(uint8_t rhport) {
+  TU_LOG_INFO("[DWC2] DCD deinit rhport=%u", rhport);
   dcd_disconnect(rhport);
   dwc2_core_deinit(rhport);
   return true;
@@ -514,6 +522,7 @@ void dcd_int_disable(uint8_t rhport) {
 
 void dcd_set_address(uint8_t rhport, uint8_t dev_addr) {
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
+  TU_LOG_INFO("[DWC2] Set address: %u", dev_addr);
   dwc2->dcfg = (dwc2->dcfg & ~DCFG_DAD_Msk) | (dev_addr << DCFG_DAD_Pos);
 
   // Response with status after changing device address
@@ -524,6 +533,7 @@ void dcd_remote_wakeup(uint8_t rhport) {
   (void) rhport;
 
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
+  TU_LOG_INFO("[DWC2] Remote wakeup");
 
   // set remote wakeup
   dwc2->dctl |= DCTL_RWUSIG;
@@ -539,6 +549,7 @@ void dcd_remote_wakeup(uint8_t rhport) {
 }
 
 void dcd_connect(uint8_t rhport) {
+  TU_LOG_INFO("[DWC2] Connect rhport=%u", rhport);
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
 
 #if defined(TUP_USBIP_DWC2_ESP32) && !TU_CHECK_MCU(OPT_MCU_ESP32S31)
@@ -559,6 +570,7 @@ void dcd_connect(uint8_t rhport) {
 }
 
 void dcd_disconnect(uint8_t rhport) {
+  TU_LOG_INFO("[DWC2] Disconnect rhport=%u", rhport);
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
 
 #if defined(TUP_USBIP_DWC2_ESP32) && !TU_CHECK_MCU(OPT_MCU_ESP32S31)
@@ -598,6 +610,9 @@ void dcd_sof_enable(uint8_t rhport, bool en) {
  *------------------------------------------------------------------*/
 
 bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const* desc_edpt) {
+  TU_LOG_INFO("[DWC2] EP Open: addr=0x%02X size=%u type=%u",
+              desc_edpt->bEndpointAddress, tu_edpt_packet_size(desc_edpt),
+              desc_edpt->bmAttributes.xfer);
   TU_ASSERT(dfifo_alloc(rhport, desc_edpt->bEndpointAddress, tu_edpt_packet_size(desc_edpt),
                        desc_edpt->bmAttributes.xfer == TUSB_XFER_BULK));
   edpt_activate(rhport, desc_edpt);
@@ -608,6 +623,7 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const* desc_edpt) {
 void dcd_edpt_close_all(uint8_t rhport) {
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
   uint8_t const ep_count = _dwc2_controller[rhport].ep_count;
+  TU_LOG_INFO("[DWC2] Close all EPs rhport=%u", rhport);
 
   usbd_spin_lock(false);
 
@@ -649,6 +665,9 @@ bool dcd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t* buffer, uint16_t to
   (void) is_isr;
   uint8_t const epnum = tu_edpt_number(ep_addr);
   uint8_t const dir = tu_edpt_dir(ep_addr);
+  if (total_bytes > 0 || buffer != NULL) {
+    TU_LOG_INFO("[DWC2] EP Xfer: ep=0x%02X len=%u", ep_addr, total_bytes);
+  }
   xfer_ctl_t* xfer = XFER_CTL_BASE(epnum, dir);
   bool ret;
 
@@ -710,6 +729,7 @@ bool dcd_edpt_xfer_fifo(uint8_t rhport, uint8_t ep_addr, tu_fifo_t* ff, uint16_t
 }
 
 void dcd_edpt_stall(uint8_t rhport, uint8_t ep_addr) {
+  TU_LOG_INFO("[DWC2] EP Stalled: 0x%02X", ep_addr);
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
   edpt_disable(rhport, ep_addr, true);
 
@@ -722,6 +742,7 @@ void dcd_edpt_stall(uint8_t rhport, uint8_t ep_addr) {
 }
 
 void dcd_edpt_clear_stall(uint8_t rhport, uint8_t ep_addr) {
+  TU_LOG_INFO("[DWC2] EP Clear Stall: 0x%02X", ep_addr);
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
   uint8_t const epnum = tu_edpt_number(ep_addr);
   uint8_t const dir = tu_edpt_dir(ep_addr);
@@ -741,6 +762,7 @@ void dcd_edpt_clear_stall(uint8_t rhport, uint8_t ep_addr) {
 static void handle_bus_reset(uint8_t rhport) {
   dwc2_regs_t *dwc2 = DWC2_REG(rhport);
   const uint8_t ep_count =  dwc2_ep_count(dwc2);
+  TU_LOG_INFO("[DWC2] Bus Reset rhport=%u", rhport);
 
   tu_memclr(xfer_status, sizeof(xfer_status));
 
@@ -800,6 +822,8 @@ static void handle_bus_reset(uint8_t rhport) {
   }
 
   dwc2->gintmsk |= GINTMSK_OTGINT | GINTMSK_OEPINT | GINTMSK_IEPINT | GINTMSK_IISOIXFRM;
+
+  TU_LOG_INFO("[DWC2] Bus Reset complete (ep_count=%u)", ep_count);
 }
 
 static void handle_enum_done(uint8_t rhport) {
@@ -822,6 +846,9 @@ static void handle_enum_done(uint8_t rhport) {
     break;
   }
 
+  TU_LOG_INFO("[DWC2] Enumeration done: speed=%s",
+              speed == TUSB_SPEED_HIGH ? "HIGH" : (speed == TUSB_SPEED_FULL ? "FULL" : "LOW"));
+
   // TODO must update GUSBCFG_TRDT according to link speed
   dcd_event_bus_reset(rhport, speed, true);
 }
@@ -837,10 +864,8 @@ TU_ATTR_ALWAYS_INLINE static inline void print_doepint(uint32_t doepint) {
 
   for(uint32_t i=0; i<TU_ARRAY_SIZE(str); i++) {
     if (doepint & TU_BIT(i)) {
-      TU_LOG1("%s ", str[i]);
     }
   }
-  TU_LOG1("\r\n");
 }
 #endif
 
@@ -1162,6 +1187,7 @@ void dcd_int_handler(uint8_t rhport) {
   const uint32_t gintsts = dwc2->gintsts & gintmask;
 
   if (gintsts & GINTSTS_USBRST) {
+    TU_LOG_INFO("[DWC2] IRQ: USB Reset start");
     // USBRST is start of reset.
     dwc2->gintsts = GINTSTS_USBRST;
 
@@ -1171,6 +1197,7 @@ void dcd_int_handler(uint8_t rhport) {
   }
 
   if (gintsts & GINTSTS_ENUMDNE) {
+    TU_LOG_INFO("[DWC2] IRQ: Enumeration done");
     // ENUMDNE is the end of reset where speed of the link is detected
     dwc2->gintsts = GINTSTS_ENUMDNE;
     // There may be a pending suspend event, so we clear it first
@@ -1180,12 +1207,14 @@ void dcd_int_handler(uint8_t rhport) {
   }
 
   if (gintsts & GINTSTS_USBSUSP) {
+    TU_LOG_INFO("[DWC2] IRQ: Suspend");
     dwc2->gintsts = GINTSTS_USBSUSP;
     dwc2->gintmsk &= ~GINTMSK_USBSUSPM;
     dcd_event_bus_signal(rhport, DCD_EVENT_SUSPEND, true);
   }
 
   if (gintsts & GINTSTS_WKUINT) {
+    TU_LOG_INFO("[DWC2] IRQ: Wakeup/Resume");
     dwc2->gintsts = GINTSTS_WKUINT;
     dwc2->gintmsk |= GINTMSK_USBSUSPM;
     dcd_event_bus_signal(rhport, DCD_EVENT_RESUME, true);
@@ -1199,6 +1228,7 @@ void dcd_int_handler(uint8_t rhport) {
     const uint32_t otg_int = dwc2->gotgint;
 
     if (otg_int & GOTGINT_SEDET) {
+      TU_LOG_WARN("[DWC2] IRQ: Session End Detected (unplugged)");
       dwc2->gintmsk &= ~GINTMSK_OTGINT;
       dcd_event_bus_signal(rhport, DCD_EVENT_UNPLUGGED, true);
     }
@@ -1247,6 +1277,7 @@ void dcd_int_handler(uint8_t rhport) {
 
   // Incomplete isochronous IN transfer interrupt handling.
   if (gintsts & GINTSTS_IISOIXFR) {
+    TU_LOG_WARN("[DWC2] IRQ: Incomplete ISO IN");
     dwc2->gintsts = GINTSTS_IISOIXFR;
     handle_incomplete_iso_in(rhport);
   }

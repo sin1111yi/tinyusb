@@ -35,7 +35,6 @@
 
 // Debug level, TUSB_CFG_DEBUG must be at least this level for debug message
 #define HUB_DEBUG   2
-#define TU_LOG_DRV(...)   TU_LOG(HUB_DEBUG, __VA_ARGS__)
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF
@@ -115,7 +114,6 @@ bool hub_port_clear_feature(uint8_t hub_addr, uint8_t hub_port, uint8_t feature,
     .user_data   = user_data
   };
 
-  TU_LOG_DRV("HUB Clear Feature: %s, addr = %u port = %u\r\n", _hub_feature_str[feature], hub_addr, hub_port);
   TU_ASSERT(tuh_control_xfer(&xfer));
   return true;
 }
@@ -143,7 +141,6 @@ bool hub_port_set_feature(uint8_t hub_addr, uint8_t hub_port, uint8_t feature,
     .user_data   = user_data
   };
 
-  TU_LOG_DRV("HUB Set Feature: %s, addr = %u port = %u\r\n", _hub_feature_str[feature], hub_addr, hub_port);
   TU_ASSERT(tuh_control_xfer(&xfer));
   return true;
 }
@@ -194,7 +191,6 @@ bool hub_port_get_status(uint8_t hub_addr, uint8_t hub_port, void* resp,
     user_complete_cb = NULL;
   }
 
-  TU_LOG_DRV("HUB Get Port Status: addr = %u port = %u\r\n", hub_addr, hub_port);
   TU_VERIFY(tuh_control_xfer(&xfer));
   return true;
 }
@@ -260,7 +256,6 @@ void hub_close(uint8_t dev_addr) {
   hub_interface_t* p_hub = get_hub_itf(dev_addr);
 
   if (p_hub->ep_in) {
-    TU_LOG_DRV("  HUB close addr = %d\r\n", dev_addr);
     tu_memclr(p_hub, sizeof( hub_interface_t));
   }
 }
@@ -388,7 +383,6 @@ bool hub_xfer_cb(uint8_t daddr, uint8_t ep_addr, xfer_result_t result, uint32_t 
     hub_interface_t* p_hub = get_hub_itf(daddr);
     hub_epbuf_t *p_epbuf = get_hub_epbuf(daddr);
     const uint8_t status_change = p_epbuf->status_change[0];
-    TU_LOG_DRV("  Hub Status Change = 0x%02X\r\n", status_change);
 
     if (status_change == 0) {
       // The status change event was neither for the hub, nor for any of its ports.
@@ -433,13 +427,10 @@ static void process_new_status(tuh_xfer_t* xfer) {
   switch (state) {
     case STATE_HUB_STATUS: {
       hub_status_response_t hub_status = *((const hub_status_response_t *) (uintptr_t) xfer->buffer);
-      TU_LOG_DRV("HUB Got hub status, addr = %u, status = %04x\r\n", daddr, hub_status.change.value);
       if (hub_status.change.local_power_source) {
-        TU_LOG_DRV("  Local Power Change\r\n");
         processed = hub_clear_feature(daddr, HUB_FEATURE_HUB_LOCAL_POWER_CHANGE,
                                       process_new_status, STATE_COMPLETE);
       } else if (hub_status.change.over_current) {
-        TU_LOG_DRV("  Over Current\r\n");
         processed = hub_clear_feature(daddr, HUB_FEATURE_HUB_OVER_CURRENT_CHANGE,
                                       process_new_status, STATE_COMPLETE);
       }

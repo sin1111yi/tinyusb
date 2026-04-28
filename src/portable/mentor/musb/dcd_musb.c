@@ -206,7 +206,6 @@ static bool handle_xfer_in(uint8_t rhport, uint_fast8_t ep_addr) {
   const unsigned len = TU_MIN(mps, rem);
   void          *buf = pipe->buf;
   volatile void *fifo_ptr = &musb_regs->fifo[epnum];
-  // TU_LOG1("   %p mps %d len %d rem %d\r\n", buf, mps, len, rem);
   if (len) {
     if (_dcd.pipe_buf_is_fifo[TUSB_DIR_IN] & TU_BIT(epnum_minus1)) {
       tu_hwfifo_write_from_fifo(fifo_ptr, (tu_fifo_t *)buf, len, NULL);
@@ -217,7 +216,6 @@ static bool handle_xfer_in(uint8_t rhport, uint_fast8_t ep_addr) {
     pipe->remaining = rem - len;
   }
   ep_csr->tx_csrl = MUSB_TXCSRL1_TXRDY;
-  // TU_LOG1(" TXCSRL%d = %x %d\r\n", epnum, ep_csr->tx_csrl, rem - len);
   return false;
 }
 
@@ -228,7 +226,6 @@ static bool handle_xfer_out(uint8_t rhport, uint_fast8_t ep_addr)
   pipe_state_t  *pipe = &_dcd.pipe[tu_edpt_dir(ep_addr)][epnum_minus1];
   musb_regs_t* musb_regs = MUSB_REGS(rhport);
   musb_ep_csr_t* ep_csr = get_ep_csr(musb_regs, epnum);
-  // TU_LOG1(" RXCSRL%d = %x\r\n", epnum_minus1 + 1, ep_csr->rx_csrl);
 
   //Fail gracefully. Spurious interrupt.
   if (!(ep_csr->rx_csrl & MUSB_RXCSRL1_RXRDY)) return false;
@@ -299,14 +296,12 @@ static bool edpt0_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t *buffer, uint16_
      * may have already finished and received the next setup packet
      * without calling this function, so we have no choice but to
      * invoke the callback function of status packet here. */
-    // TU_LOG1(" STATUS OUT ep_csr->csr0l = %x\r\n", ep_csr->csr0l);
     _dcd.status_out = 0;
     if (req == REQUEST_TYPE_INVALID) {
       dcd_event_xfer_complete(rhport, ep_addr, total_bytes, XFER_RESULT_SUCCESS, false);
     } else {
       /* The next setup packet has already been received, it aborts
        * invoking callback function to avoid confusing TUSB stack. */
-      TU_LOG1("Drop CONTROL_STAGE_ACK\r\n");
     }
     return true;
   }
@@ -332,16 +327,13 @@ static bool edpt0_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t *buffer, uint16_
       } else {
         ep_csr->csr0l = MUSB_CSRL0_TXRDY; /* Flush TX FIFO to return ACK. */
       }
-      // TU_LOG1(" IN ep_csr->csr0l = %x\r\n", ep_csr->csr0l);
     } else {
-      // TU_LOG1(" OUT ep_csr->csr0l = %x\r\n", ep_csr->csr0l);
       _dcd.pipe0.buf       = buffer;
       _dcd.pipe0.length    = len;
       _dcd.pipe0.remaining = len;
       ep_csr->csr0l = MUSB_CSRL0_RXRDYC; /* Clear RX FIFO to return ACK. */
     }
   } else if (dir_in) {
-    // TU_LOG1(" STATUS IN ep_csr->csr0l  = %x\r\n", ep_csr->csr0l);
     _dcd.pipe0.buf = NULL;
     _dcd.pipe0.length    = 0;
     _dcd.pipe0.remaining = 0;
@@ -357,7 +349,6 @@ static void process_ep0(uint8_t rhport)
   musb_ep_csr_t* ep_csr = get_ep_csr(musb_regs, 0);
   uint_fast8_t csrl = ep_csr->csr0l;
 
-  // TU_LOG1(" EP0 ep_csr->csr0l = %x\r\n", csrl);
   // 21.1.5: endpoint 0 service routine as peripheral
 
   if (csrl & MUSB_CSRL0_STALLED) {
@@ -368,7 +359,6 @@ static void process_ep0(uint8_t rhport)
 
   unsigned req = _dcd.setup_packet.bmRequestType;
   if (csrl & MUSB_CSRL0_SETEND) {
-    TU_LOG1("   ABORT by the next packets\r\n");
     ep_csr->csr0l = MUSB_CSRL0_SETENDC;
     if (req != REQUEST_TYPE_INVALID && _dcd.pipe0.buf) {
       /* DATA stage was aborted by receiving STATUS or SETUP packet. */
@@ -446,14 +436,12 @@ static void process_edpt_n(uint8_t rhport, uint_fast8_t ep_addr)
   musb_regs_t* musb_regs = MUSB_REGS(rhport);
   musb_ep_csr_t* ep_csr = get_ep_csr(musb_regs, epn);
   if (dir_in) {
-    // TU_LOG1(" TX CSRL%d = %x\r\n", epn, ep_csr->tx_csrl);
     if (ep_csr->tx_csrl & MUSB_TXCSRL1_STALLED) {
       ep_csr->tx_csrl = (uint8_t)(ep_csr->tx_csrl & ~(MUSB_TXCSRL1_STALLED | MUSB_TXCSRL1_UNDRN));
       return;
     }
     completed = handle_xfer_in(rhport, ep_addr);
   } else {
-    // TU_LOG1(" RX CSRL%d = %x\r\n", epn, ep_csr->rx_csrl);
     if (ep_csr->rx_csrl & MUSB_RXCSRL1_STALLED) {
       ep_csr->rx_csrl = (uint8_t)(ep_csr->rx_csrl & ~(MUSB_RXCSRL1_STALLED | MUSB_RXCSRL1_OVER));
       return;
@@ -503,19 +491,13 @@ static void process_bus_reset(uint8_t rhport) {
 #if CFG_TUSB_DEBUG >= MUSB_DEBUG
 static void print_musb_info(musb_regs_t* musb_regs) {
   // print version, epinfo, raminfo, config_data0, fifo_size
-  TU_LOG1("musb version = %u.%u\r\n", musb_regs->hwvers_bit.major, musb_regs->hwvers_bit.minor);
-  TU_LOG1("Number of endpoints: %u TX, %u RX\r\n", musb_regs->epinfo_bit.tx_ep_num, musb_regs->epinfo_bit.rx_ep_num);
-  TU_LOG1("RAM Info: %u DMA Channel, %u RAM address width\r\n", musb_regs->raminfo_bit.dma_channel, musb_regs->raminfo_bit.ram_bits);
 
   musb_regs->index = 0;
-  TU_LOG1("config_data0 = 0x%x\r\n", musb_regs->indexed_csr.config_data0);
 
 #if MUSB_CFG_DYNAMIC_FIFO
-  TU_LOG1("Dynamic FIFO configuration\r\n");
 #else
   for (uint8_t i=1; i <= musb_regs->epinfo_bit.tx_ep_num; i++) {
     musb_regs->index = i;
-    TU_LOG1("FIFO %u Size: TX %u RX %u\r\n", i, musb_regs->indexed_csr.fifo_size_bit.tx, musb_regs->indexed_csr.fifo_size_bit.rx);
   }
 #endif
 }
@@ -716,7 +698,6 @@ bool dcd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t * buffer, uint16_t t
   (void) is_isr;
   (void)rhport;
   bool ret;
-  // TU_LOG1("X %x %d\r\n", ep_addr, total_bytes);
   unsigned const epnum = tu_edpt_number(ep_addr);
   unsigned const ie = musb_dcd_get_int_enable(rhport);
   musb_dcd_int_disable(rhport);
@@ -739,7 +720,6 @@ bool dcd_edpt_xfer_fifo(uint8_t rhport, uint8_t ep_addr, tu_fifo_t * ff, uint16_
   (void) is_isr;
   (void)rhport;
   bool ret;
-  // TU_LOG1("X %x %d\r\n", ep_addr, total_bytes);
   unsigned const epnum = tu_edpt_number(ep_addr);
   TU_ASSERT(epnum);
   unsigned const ie = musb_dcd_get_int_enable(rhport);
@@ -803,7 +783,6 @@ void dcd_int_handler(uint8_t rhport) {
   uint_fast8_t intr_usb = musb_regs->intr_usb; // a read will clear this interrupt status
   uint_fast16_t intr_tx = musb_regs->intr_tx; // a read will clear this interrupt status
   uint_fast16_t intr_rx = musb_regs->intr_rx; // a read will clear this interrupt status
-  // TU_LOG1("D%2x T%2x R%2x\r\n", is, txis, rxis);
 
   intr_usb &= musb_regs->intr_usben; /* Clear disabled interrupts */
   if (intr_usb & MUSB_IS_DISCON) {

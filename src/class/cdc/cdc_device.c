@@ -38,7 +38,6 @@
   #define CFG_TUD_CDC_LOG_LEVEL   CFG_TUD_LOG_LEVEL
 #endif
 
-#define TU_LOG_DRV(...)   TU_LOG(CFG_TUD_CDC_LOG_LEVEL, __VA_ARGS__)
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF
@@ -394,7 +393,6 @@ bool cdcd_control_xfer_cb(uint8_t rhport, uint8_t stage, const tusb_control_requ
   switch (request->bRequest) {
     case CDC_REQUEST_SET_LINE_CODING:
       if (stage == CONTROL_STAGE_SETUP) {
-        TU_LOG_DRV("  Set Line Coding\r\n");
         tud_control_xfer(rhport, request, &p_cdc->line_coding, sizeof(cdc_line_coding_t));
       } else if (stage == CONTROL_STAGE_ACK) {
         tud_cdc_line_coding_cb(itf, &p_cdc->line_coding);
@@ -405,7 +403,6 @@ bool cdcd_control_xfer_cb(uint8_t rhport, uint8_t stage, const tusb_control_requ
 
     case CDC_REQUEST_GET_LINE_CODING:
       if (stage == CONTROL_STAGE_SETUP) {
-        TU_LOG_DRV("  Get Line Coding\r\n");
         tud_control_xfer(rhport, request, &p_cdc->line_coding, sizeof(cdc_line_coding_t));
       }
       break;
@@ -432,7 +429,6 @@ bool cdcd_control_xfer_cb(uint8_t rhport, uint8_t stage, const tusb_control_requ
   #endif
 
         tu_fifo_set_overwritable(&p_cdc->tx_stream.ff, is_overwritable);
-        TU_LOG_DRV("  Set Control Line State: DTR = %d, RTS = %d\r\n", dtr, rts);
         tud_cdc_line_state_cb(itf, dtr, rts); // invoke callback
       } else {
         // nothing to do
@@ -443,7 +439,6 @@ bool cdcd_control_xfer_cb(uint8_t rhport, uint8_t stage, const tusb_control_requ
       if (stage == CONTROL_STAGE_SETUP) {
         tud_control_status(rhport, request);
       } else if (stage == CONTROL_STAGE_ACK) {
-        TU_LOG_DRV("  Send Break\r\n");
         tud_cdc_send_break_cb(itf, request->wValue);
       } else {
         // nothing to do

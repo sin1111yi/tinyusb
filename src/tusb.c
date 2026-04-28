@@ -259,7 +259,6 @@ bool tu_edpt_release(tu_edpt_state_t* ep_state, osal_mutex_t mutex) {
 #if CFG_TUSB_DEBUG
 bool tu_edpt_validate(const tusb_desc_endpoint_t *desc_ep, tusb_speed_t speed) {
   const uint16_t max_packet_size = tu_edpt_packet_size(desc_ep);
-  TU_LOG2("  Open EP %02X with Size = %u\r\n", desc_ep->bEndpointAddress, max_packet_size);
   TU_ASSERT(max_packet_size > 0);
 
   switch (desc_ep->bmAttributes.xfer) {
@@ -501,70 +500,6 @@ char const* const tu_str_xfer_result[] = {
     "OK", "FAILED", "STALLED", "TIMEOUT"
 };
 #endif
-
-static void dump_str_line(uint8_t const* buf, uint16_t count) {
-  tu_printf("  |");
-  // each line is 16 bytes
-  for (uint16_t i = 0; i < count; i++) {
-    int ch = buf[i];
-    tu_printf("%c", isprint(ch) ? ch : '.');
-  }
-  tu_printf("|\r\n");
-}
-
-/* Print out memory contents
- *  - buf   : buffer
- *  - count : number of item
- *  - indent: prefix spaces on every line
- */
-void tu_print_mem(void const* buf, uint32_t count, uint8_t indent) {
-  uint8_t const size = 1; // fixed 1 byte for now
-  if (!buf || !count) {
-    tu_printf("NULL\r\n");
-    return;
-  }
-
-  uint8_t const* buf8 = (uint8_t const*) buf;
-  char format[] = "%00X";
-  format[2] += (uint8_t) (2 * size); // 1 byte = 2 hex digits
-  const uint8_t item_per_line = 16 / size;
-
-  for (unsigned int i = 0; i < count; i++) {
-    unsigned int value = 0;
-
-    if (i % item_per_line == 0) {
-      // Print Ascii
-      if (i != 0) {
-        dump_str_line(buf8 - 16, 16);
-      }
-      for (uint8_t s = 0; s < indent; s++) {
-        tu_printf(" ");
-      }
-      // print offset or absolute address
-      tu_printf("%04X: ", 16 * i / item_per_line);
-    }
-
-    tu_memcpy_s(&value, sizeof(value), buf8, size);
-    buf8 += size;
-
-    tu_printf(" ");
-    tu_printf(format, value);
-  }
-
-  // fill up last row to 16 for printing ascii
-  const uint32_t remain = count % 16;
-  uint8_t nback = (uint8_t) (remain ? remain : 16);
-  if (remain > 0) {
-    for (uint32_t i = 0; i < 16 - remain; i++) {
-      tu_printf(" ");
-      for (int j = 0; j < 2 * size; j++) {
-        tu_printf(" ");
-      }
-    }
-  }
-
-  dump_str_line(buf8 - nback, nback);
-}
 
 #endif
 

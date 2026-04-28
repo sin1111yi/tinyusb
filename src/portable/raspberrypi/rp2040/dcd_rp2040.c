@@ -130,7 +130,6 @@ static void hw_endpoint_open(uint8_t ep_addr, uint16_t wMaxPacketSize, uint8_t t
     *get_ep_ctrl(epnum, dir) = ep_ctrl;
 
     hard_assert(hw_buffer_ptr < usb_dpram->epx_data + sizeof(usb_dpram->epx_data));
-    pico_info("  Allocated %d bytes (0x%p)\r\n", size, ep->dpram_buf);
   }
 }
 
@@ -159,7 +158,6 @@ static void hw_endpoint_abort_xfer(struct hw_endpoint* ep) {
 
 static void __tusb_irq_path_func(handle_hw_buff_status)(void) {
   uint32_t buf_status = usb_hw->buf_status;
-  pico_trace("buf_status = 0x%08lx\r\n", buf_status);
   while (buf_status) {
     // ctz/clz is faster than loop which has only a few bit set in general
     const uint8_t i = (uint8_t) __builtin_ctz(buf_status);
@@ -312,7 +310,6 @@ static void __tusb_irq_path_func(dcd_rp2040_irq)(void) {
 
   // SE0 for 2.5 us or more (will last at least 10ms)
   if (status & USB_INTS_BUS_RESET_BITS) {
-    pico_trace("BUS RESET\r\n");
     usb_hw->dev_addr_ctrl = 0;
     reset_non_control_endpoints();
     dcd_event_bus_reset(0, TUSB_SPEED_FULL, true);
@@ -359,7 +356,6 @@ bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
   (void) rh_init;
   assert(rhport == 0);
 
-  // TU_LOG(1, "Chip Version B%u\r\n", rp2040_chip_version());
 
   // Reset hardware to default state
   rp2usb_init();
@@ -426,7 +422,6 @@ void dcd_set_address(uint8_t rhport, uint8_t dev_addr) {
 }
 
 void dcd_remote_wakeup(__unused uint8_t rhport) {
-  pico_info("dcd_remote_wakeup %d\n", rhport);
   assert(rhport == 0);
 
   // since RESUME interrupt is not triggered if we are the one initiate

@@ -240,7 +240,6 @@ static void xact_in_dma(uint8_t epnum) {
 bool dcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
   (void) rhport;
   (void) rh_init;
-  TU_LOG2("dcd init\r\n");
   return true;
 }
 
@@ -652,7 +651,6 @@ void dcd_int_handler(uint8_t rhport) {
   }
 
   if (int_status & USBD_INTEN_USBEVENT_Msk) {
-    TU_LOG(3, "EVENTCAUSE = 0x%04" PRIX32 "\r\n", NRF_USBD->EVENTCAUSE);
 
     enum {
       EVT_CAUSE_MASK = USBD_EVENTCAUSE_SUSPEND_Msk | USBD_EVENTCAUSE_RESUME_Msk | USBD_EVENTCAUSE_USBWUALLOWED_Msk |
@@ -937,7 +935,6 @@ void tusb_hal_nrf_power_event(uint32_t event) {
 
 #if CFG_TUSB_DEBUG >= 3
   const char* const power_evt_str[] = {"Detected", "Removed", "Ready"};
-  TU_LOG(3, "Power USB event: %s\r\n", power_evt_str[event]);
 #endif
 
   switch (event) {

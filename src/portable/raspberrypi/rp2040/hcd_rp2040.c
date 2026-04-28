@@ -248,7 +248,6 @@ static void __tusb_irq_path_func(xfer_complete_isr)(hw_endpoint_t *ep, xfer_resu
 }
 
 static void __tusb_irq_path_func(handle_buf_status_isr)(void) {
-  pico_trace("buf_status 0x%08lx\n", buf_status);
   enum {
     BUF_STATUS_EPX = 1u
   };
@@ -412,7 +411,6 @@ void __tusb_irq_path_func(hcd_int_handler)(uint8_t rhport, bool in_isr) {
 bool hcd_init(uint8_t rhport, const tusb_rhport_init_t *rh_init) {
   (void)rhport;
   (void)rh_init;
-  pico_trace("hcd_init %d\n", rhport);
   assert(rhport == 0);
 
   // Reset any previous state
@@ -530,7 +528,6 @@ void hcd_int_disable(uint8_t rhport) {
 //--------------------------------------------------------------------+
 bool hcd_edpt_open(uint8_t rhport, uint8_t dev_addr, const tusb_desc_endpoint_t *ep_desc) {
   (void)rhport;
-  pico_trace("hcd_edpt_open dev_addr %d, ep_addr %d\n", dev_addr, ep_desc->bEndpointAddress);
   hw_endpoint_t *ep;
   if (dev_addr == 0) {
     ep = &ep_pool[0];

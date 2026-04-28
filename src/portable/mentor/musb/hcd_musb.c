@@ -413,7 +413,6 @@ static void process_ep0(uint8_t rhport)
   (void)rhport;
 
   uint_fast8_t csrl = USB0->CSRL0;
-  // TU_LOG1(" EP0 CSRL = %x\r\n", csrl);
 
   unsigned const dev_addr = USB0->TXFUNCADDR0;
   unsigned const req = _hcd.bmRequestType;
@@ -503,7 +502,6 @@ static void process_pipe_tx(uint8_t rhport, uint_fast8_t pipenum)
 
   volatile hw_endpoint_t *regs = edpt_regs(pipenum - 1);
   unsigned const csrl = regs->TXCSRL;
-  // TU_LOG1(" TXCSRL%d = %x\r\n", pipenum, csrl);
   if (csrl & (USB_TXCSRL1_STALLED | USB_TXCSRL1_ERROR)) {
     if (csrl & USB_TXCSRL1_TXRDY)
       regs->TXCSRL = (csrl & ~(USB_TXCSRL1_STALLED | USB_TXCSRL1_ERROR)) | USB_TXCSRL1_FLUSH;
@@ -532,7 +530,6 @@ static void process_pipe_rx(uint8_t rhport, uint_fast8_t pipenum)
 
   volatile hw_endpoint_t *regs = edpt_regs(pipenum - 1);
   unsigned const csrl = regs->RXCSRL;
-  // TU_LOG1(" RXCSRL%d = %x\r\n", pipenum, csrl);
   if (csrl & (USB_RXCSRL1_STALLED | USB_RXCSRL1_ERROR)) {
     if (csrl & USB_RXCSRL1_RXRDY)
       regs->RXCSRL = (csrl & ~(USB_RXCSRL1_STALLED | USB_RXCSRL1_ERROR)) | USB_RXCSRL1_FLUSH;
@@ -856,7 +853,6 @@ void hcd_int_handler(uint8_t rhport, bool in_isr)
   is   = USB0->IS;   /* read and clear interrupt status */
   txis = USB0->TXIS; /* read and clear interrupt status */
   rxis = USB0->RXIS; /* read and clear interrupt status */
-  // TU_LOG1("D%2x T%2x R%2x\r\n", is, txis, rxis);
 
   is &= USB0->IE; /* Clear disabled interrupts */
   if (is & USB_IS_RESUME) {
