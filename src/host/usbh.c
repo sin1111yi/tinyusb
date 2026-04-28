@@ -501,12 +501,12 @@ bool tuh_rhport_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
 
   // Init host stack if not already
   if (!tuh_inited()) {
-    TU_LOG_INT_USBH(sizeof(usbh_data_t));
-    TU_LOG_INT_USBH(sizeof(usbh_device_t));
-    TU_LOG_INT_USBH(sizeof(hcd_event_t));
-    TU_LOG_INT_USBH(sizeof(tuh_xfer_t));
-    TU_LOG_INT_USBH(sizeof(tu_fifo_t));
-    TU_LOG_INT_USBH(sizeof(tu_edpt_stream_t));
+    TU_LOG_INFO("sizeof(usbh_data_t) = %u", (unsigned int)sizeof(usbh_data_t));
+    TU_LOG_INFO("sizeof(usbh_device_t) = %u", (unsigned int)sizeof(usbh_device_t));
+    TU_LOG_INFO("sizeof(hcd_event_t) = %u", (unsigned int)sizeof(hcd_event_t));
+    TU_LOG_INFO("sizeof(tuh_xfer_t) = %u", (unsigned int)sizeof(tuh_xfer_t));
+    TU_LOG_INFO("sizeof(tu_fifo_t) = %u", (unsigned int)sizeof(tu_fifo_t));
+    TU_LOG_INFO("sizeof(tu_edpt_stream_t) = %u", (unsigned int)sizeof(tu_edpt_stream_t));
 
     osal_spin_init(&_usbh_spin);
 
@@ -827,7 +827,7 @@ bool tuh_control_xfer (tuh_xfer_t* xfer) {
   TU_VERIFY(is_idle);
               (xfer->setup->bmRequestType_bit.type == TUSB_REQ_TYPE_STANDARD && xfer->setup->bRequest <= TUSB_REQ_SYNCH_FRAME) ?
                   tu_str_std_request[xfer->setup->bRequest] : "Class Request");
-  TU_LOG_BUF_USBH(xfer->setup, 8);
+  TU_LOG_INFO("");
 
   if (xfer->complete_cb != NULL) {
     TU_ASSERT(usbh_setup_send(daddr, (uint8_t const *) &_usbh_epbuf.request));
@@ -892,7 +892,7 @@ static bool usbh_control_xfer_cb (uint8_t daddr, uint8_t ep_addr, xfer_result_t 
 
   switch (result) {
     case XFER_RESULT_STALLED:
-      TU_LOG_BUF_USBH(request, 8);
+      TU_LOG_INFO("");
       _control_xfer_complete(daddr, result);
     break;
 
@@ -906,7 +906,7 @@ static bool usbh_control_xfer_cb (uint8_t daddr, uint8_t ep_addr, xfer_result_t 
 
         TU_ASSERT(usbh_setup_send(daddr, (uint8_t const *) request));
       } else {
-        TU_LOG_BUF_USBH(request, 8);
+        TU_LOG_INFO("");
         _control_xfer_complete(daddr, result);
       }
     break;
@@ -925,7 +925,7 @@ static bool usbh_control_xfer_cb (uint8_t daddr, uint8_t ep_addr, xfer_result_t 
 
         case CONTROL_STAGE_DATA: {
             if (request->wLength > 0) {
-              TU_LOG_MEM_USBH(ctrl_info->buffer, xferred_bytes, 2);
+              TU_LOG_INFO("");
             }
             ctrl_info->actual_len = (uint16_t) xferred_bytes;
 

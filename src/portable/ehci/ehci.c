@@ -104,12 +104,12 @@ CFG_TUH_MEM_SECTION TU_ATTR_ALIGNED(4096) static ehci_data_t ehci_data;
 //--------------------------------------------------------------------+
 #if 0 && CFG_TUSB_DEBUG >= (EHCI_DBG + 1)
 static inline void print_portsc(ehci_registers_t* regs) {
-  TU_LOG_HEX(EHCI_DBG, regs->portsc);
+  TU_LOG_INFO("");
 
 }
 
 static inline void print_intr(uint32_t intr) {
-  TU_LOG_HEX(EHCI_DBG, intr);
+  TU_LOG_INFO("");
 }
 
 #else

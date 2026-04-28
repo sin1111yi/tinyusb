@@ -528,7 +528,7 @@ uint16_t tu_fifo_write_n_access_mode(tu_fifo_t *f, const void *data, uint16_t n,
 
   const uint8_t *buf8 = (const uint8_t *)data;
 
-  TU_LOG(TU_FIFO_DBG, "rd = %3u, wr = %3u, count = %3u, remain = %3u, n = %3u:  ", rd_idx, wr_idx,
+  TU_LOG_INFO("rd = %3u, wr = %3u, count = %3u, remain = %3u, n = %3u:  ", rd_idx, wr_idx,
          tu_ff_overflow_count(f->depth, wr_idx, rd_idx), tu_ff_remaining_local(f->depth, wr_idx, rd_idx), n);
 
   if (!f->overwritable) {
@@ -576,7 +576,7 @@ uint16_t tu_fifo_write_n_access_mode(tu_fifo_t *f, const void *data, uint16_t n,
 
   if (n) {
     const uint16_t wr_ptr = idx2ptr(f->depth, wr_idx);
-    TU_LOG(TU_FIFO_DBG, "actual_n = %u, wr_ptr = %u", n, wr_ptr);
+    TU_LOG_INFO("actual_n = %u, wr_ptr = %u", n, wr_ptr);
 
 #if CFG_TUSB_FIFO_HWFIFO_API
     if (access_mode != NULL) {
@@ -588,7 +588,7 @@ uint16_t tu_fifo_write_n_access_mode(tu_fifo_t *f, const void *data, uint16_t n,
     }
     f->wr_idx = advance_index(f->depth, wr_idx, n);
 
-    TU_LOG(TU_FIFO_DBG, "new_wr = %u", f->wr_idx);
+    TU_LOG_INFO("new_wr = %u", f->wr_idx);
   }
 
   ff_unlock(f->mutex_wr);
