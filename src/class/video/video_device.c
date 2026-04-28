@@ -39,6 +39,7 @@
   #define CFG_TUD_VIDEO_LOG_LEVEL   CFG_TUD_LOG_LEVEL
 #endif
 
+#define TU_LOG_DRV(...)   TU_LOG(CFG_TUD_VIDEO_LOG_LEVEL, __VA_ARGS__)
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF
@@ -765,14 +766,17 @@ static bool _close_vc_itf(uint8_t rhport, videod_interface_t *self)
  * @param[in]     altnum   The target alternate setting number. */
 static bool _open_vc_itf(uint8_t rhport, videod_interface_t *self, uint_fast8_t altnum)
 {
+  TU_LOG_DRV("    open VC %d\r\n", altnum);
   uint8_t const *beg = self->beg;
   uint8_t const *end = beg + self->len;
 
   /* The first descriptor is a video control interface descriptor. */
   uint8_t const *cur = _find_desc_itf(beg, end, _desc_itfnum(beg), altnum);
+  TU_LOG_DRV("    cur %" PRId32 "\r\n", (int32_t) (cur - beg));
   TU_VERIFY(cur < end);
 
   tusb_desc_vc_itf_t const *vc = (tusb_desc_vc_itf_t const *)cur;
+  TU_LOG_DRV("    bInCollection %d\r\n", vc->ctl.bInCollection);
   /* Support for up to 2 streaming interfaces only. */
   TU_ASSERT(vc->ctl.bInCollection <= CFG_TUD_VIDEO_STREAMING);
 
@@ -781,6 +785,7 @@ static bool _open_vc_itf(uint8_t rhport, videod_interface_t *self, uint_fast8_t 
 
   /* Advance to the next descriptor after the class-specific VC interface header descriptor. */
   cur += vc->std.bLength + vc->ctl.bLength;
+  TU_LOG_DRV("    bNumEndpoints %d\r\n", vc->std.bNumEndpoints);
   /* Open the notification endpoint if it exist. */
   if (vc->std.bNumEndpoints != 0) {
     /* Support for 1 endpoint only. */
@@ -815,6 +820,7 @@ static bool _init_vs_configuration(videod_streaming_interface_t *stm) {
 static bool _open_vs_itf(uint8_t rhport, videod_streaming_interface_t *stm, uint_fast8_t altnum)
 {
   uint_fast8_t i;
+  TU_LOG_DRV("    reopen VS %d\r\n", altnum);
   uint8_t const *desc = _videod_itf[stm->index_vc].beg;
 
 #ifndef TUP_DCD_EDPT_ISO_ALLOC
@@ -827,6 +833,7 @@ static bool _open_vs_itf(uint8_t rhport, videod_streaming_interface_t *stm, uint
     if(ep->bmAttributes.xfer == TUSB_XFER_ISOCHRONOUS) {
       stm->desc.ep[i] = 0;
       usbd_edpt_close(rhport, ep->bEndpointAddress);
+      TU_LOG_DRV("    close EP%02x\r\n", ep->bEndpointAddress);
     }
   }
 #endif
@@ -867,10 +874,12 @@ static bool _open_vs_itf(uint8_t rhport, videod_streaming_interface_t *stm, uint
       TU_ASSERT(usbd_edpt_open(rhport, ep));
     }
     stm->desc.ep[i] = (uint16_t) (cur - desc);
+    TU_LOG_DRV("    open EP%02x\r\n", _desc_ep_addr(cur));
   }
   if (altnum != 0) {
     stm->state = VS_STATE_STREAMING;
   }
+  TU_LOG_DRV("    done\r\n");
   return true;
 }
 
@@ -908,6 +917,7 @@ static int handle_video_ctl_std_req(uint8_t rhport, uint8_t stage,
                                     tusb_control_request_t const *request,
                                     uint_fast8_t ctl_idx)
 {
+  TU_LOG_DRV("\r\n");
   switch (request->bRequest) {
     case TUSB_REQ_GET_INTERFACE:
       if (stage == CONTROL_STAGE_SETUP)
@@ -946,6 +956,7 @@ static int handle_video_ctl_cs_req(uint8_t rhport, uint8_t stage,
 
   /* 4.2.1 Interface Control Request */
   uint8_t const ctrl_sel = TU_U16_HIGH(request->wValue);
+  TU_LOG_DRV("%s_Control(%s)\r\n",  tu_str_video_vc_control_selector[ctrl_sel], tu_lookup_find(&tu_table_video_request, request->bRequest));
 
   switch (ctrl_sel) {
     case VIDEO_VC_CTL_VIDEO_POWER_MODE:
@@ -1029,6 +1040,7 @@ static int handle_video_ctl_req(uint8_t rhport, uint8_t stage,
 static int handle_video_stm_std_req(uint8_t rhport, uint8_t stage,
                                     tusb_control_request_t const *request,
                                     uint_fast8_t stm_idx) {
+  TU_LOG_DRV("\r\n");
   videod_streaming_interface_t *self = &_videod_streaming_itf[stm_idx];
   switch (request->bRequest) {
     case TUSB_REQ_GET_INTERFACE:
@@ -1063,6 +1075,7 @@ static int handle_video_stm_cs_req(uint8_t rhport, uint8_t stage,
   videod_streaming_epbuf_t *stm_epbuf = &_videod_streaming_epbuf[stm_idx];
 
   uint8_t const ctrl_sel = TU_U16_HIGH(request->wValue);
+  TU_LOG_DRV("%s_Control(%s)\r\n", tu_str_video_vs_control_selector[ctrl_sel], tu_lookup_find(&tu_table_video_request, request->bRequest));
 
   /* 4.2.1 Interface Control Request */
   switch (ctrl_sel) {
@@ -1442,6 +1455,7 @@ bool videod_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_
   }
 
   if (itf < CFG_TUD_VIDEO) {
+    TU_LOG_DRV("  VC[%d]: ", itf);
     err = handle_video_ctl_req(rhport, stage, request, itf);
     _videod_itf[itf].error_code = (uint8_t)err;
     if (0 != err) {
@@ -1463,6 +1477,7 @@ bool videod_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_
   }
 
   if (itf < CFG_TUD_VIDEO_STREAMING) {
+    TU_LOG_DRV("  VS[%d]: ", itf);
     err = handle_video_stm_req(rhport, stage, request, itf);
     _videod_streaming_itf[itf].error_code = (uint8_t)err;
     if (err != 0) {

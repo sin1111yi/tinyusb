@@ -38,6 +38,7 @@
   #define CFG_TUH_MSC_LOG_LEVEL   CFG_TUH_LOG_LEVEL
 #endif
 
+#define TU_LOG_DRV(...)   TU_LOG(CFG_TUH_MSC_LOG_LEVEL, __VA_ARGS__)
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF
@@ -298,6 +299,8 @@ bool tuh_msc_reset(uint8_t dev_addr) {
 // CLASS-USBH API
 //--------------------------------------------------------------------+
 bool msch_init(void) {
+  TU_LOG_DRV("sizeof(msch_interface_t) = %u\r\n", sizeof(msch_interface_t));
+  TU_LOG_DRV("sizeof(msch_epbuf_t) = %u\r\n", sizeof(msch_epbuf_t));
   tu_memclr(_msch_itf, sizeof(_msch_itf));
   return true;
 }
@@ -311,6 +314,7 @@ void msch_close(uint8_t dev_addr) {
   msch_interface_t* p_msc = get_itf(dev_addr);
   TU_VERIFY(p_msc->configured,);
 
+  TU_LOG_DRV("  MSCh close addr = %d\r\n", dev_addr);
 
   // invoke Application Callback
   if (p_msc->mounted) {
@@ -411,6 +415,7 @@ bool msch_set_config(uint8_t daddr, uint8_t itf_num) {
   p_msc->configured = true;
 
   //------------- Get Max Lun -------------//
+  TU_LOG_DRV("MSC Get Max Lun\r\n");
   tusb_control_request_t const request = {
       .bmRequestType_bit = {
           .recipient = TUSB_REQ_RCPT_INTERFACE,
@@ -449,8 +454,10 @@ static void config_get_maxlun_complete(tuh_xfer_t* xfer) {
     p_msc->max_lun = 1;
   }
 
+  TU_LOG_DRV("  Max LUN = %u\r\n", p_msc->max_lun);
 
   // TODO multiple LUN support
+  TU_LOG_DRV("SCSI Test Unit Ready\r\n");
   uint8_t const lun = 0;
   tuh_msc_test_unit_ready(daddr, lun, config_test_unit_ready_complete, 0);
 }
@@ -462,12 +469,14 @@ static bool config_test_unit_ready_complete(uint8_t dev_addr, tuh_msc_complete_d
 
   if (csw->status == 0) {
     // Unit is ready, read its capacity
+    TU_LOG_DRV("SCSI Read Capacity\r\n");
     tuh_msc_read_capacity(dev_addr, cbw->lun, (scsi_read_capacity10_resp_t*) (uintptr_t) enum_buf,
                           config_read_capacity_complete, 0);
   } else {
     // Note: During enumeration, some device fails Test Unit Ready and require a few retries
     // with Request Sense to start working !!
     // TODO limit number of retries
+    TU_LOG_DRV("SCSI Request Sense\r\n");
     TU_ASSERT(tuh_msc_request_sense(dev_addr, cbw->lun, enum_buf, config_request_sense_complete, 0));
   }
 

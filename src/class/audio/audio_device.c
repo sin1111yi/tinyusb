@@ -340,6 +340,7 @@ TU_ATTR_WEAK bool tud_audio_set_req_ep_cb(uint8_t rhport, tusb_control_request_t
   (void) rhport;
   (void) p_request;
   (void) pBuff;
+  TU_LOG2("  No EP set request callback available!\r\n");
   return false;// In case no callback function is present or request can not be conducted we stall it
 }
 
@@ -348,6 +349,7 @@ TU_ATTR_WEAK bool tud_audio_set_req_itf_cb(uint8_t rhport, tusb_control_request_
   (void) rhport;
   (void) p_request;
   (void) pBuff;
+  TU_LOG2("  No interface set request callback available!\r\n");
   return false;// In case no callback function is present or request can not be conducted we stall it
 }
 
@@ -356,6 +358,7 @@ TU_ATTR_WEAK bool tud_audio_set_req_entity_cb(uint8_t rhport, tusb_control_reque
   (void) rhport;
   (void) p_request;
   (void) pBuff;
+  TU_LOG2("  No entity set request callback available!\r\n");
   return false;// In case no callback function is present or request can not be conducted we stall it
 }
 
@@ -363,6 +366,7 @@ TU_ATTR_WEAK bool tud_audio_set_req_entity_cb(uint8_t rhport, tusb_control_reque
 TU_ATTR_WEAK bool tud_audio_get_req_ep_cb(uint8_t rhport, tusb_control_request_t const *p_request) {
   (void) rhport;
   (void) p_request;
+  TU_LOG2("  No EP get request callback available!\r\n");
   return false;// Stall
 }
 
@@ -370,6 +374,7 @@ TU_ATTR_WEAK bool tud_audio_get_req_ep_cb(uint8_t rhport, tusb_control_request_t
 TU_ATTR_WEAK bool tud_audio_get_req_itf_cb(uint8_t rhport, tusb_control_request_t const *p_request) {
   (void) rhport;
   (void) p_request;
+  TU_LOG2("  No interface get request callback available!\r\n");
   return false;// Stall
 }
 
@@ -377,6 +382,7 @@ TU_ATTR_WEAK bool tud_audio_get_req_itf_cb(uint8_t rhport, tusb_control_request_
 TU_ATTR_WEAK bool tud_audio_get_req_entity_cb(uint8_t rhport, tusb_control_request_t const *p_request) {
   (void) rhport;
   (void) p_request;
+  TU_LOG2("  No entity get request callback available!\r\n");
   return false;// Stall
 }
 
@@ -1050,6 +1056,7 @@ static bool audiod_get_interface(uint8_t rhport, tusb_control_request_t const *p
 
   TU_VERIFY(tud_control_xfer(rhport, p_request, &alt, 1));
 
+  TU_LOG2("  Get itf: %u - current alt: %u\r\n", itf, alt);
 
   return true;
 }
@@ -1071,6 +1078,7 @@ static bool audiod_set_interface(uint8_t rhport, tusb_control_request_t const *p
   uint8_t const itf = tu_u16_low(p_request->wIndex);
   uint8_t const alt = tu_u16_low(p_request->wValue);
 
+  TU_LOG2("  Set itf: %u - alt: %u\r\n", itf, alt);
 
   // Find index of audio streaming interface and index of interface
   uint8_t func_id;
@@ -1426,6 +1434,7 @@ static bool audiod_control_request(uint8_t rhport, tusb_control_request_t const 
 
       // Unknown/Unsupported recipient
       default:
+        TU_LOG2("  Unsupported recipient: %d\r\n", p_request->bmRequestType_bit.recipient);
         TU_BREAKPOINT();
         return false;
     }
@@ -1561,6 +1570,7 @@ static bool audiod_fb_params_prepare(uint8_t func_id, uint8_t alt) {
         uint32_t const n_frame = (1UL << audio->feedback.frame_shift);
 
         if ((((1UL << k) * fb_param.sample_freq / fb_param.frequency.mclk_freq) + 1) > n_frame) {
+          TU_LOG1("  UAC2 feedback interval too small\r\n");
           TU_BREAKPOINT();
           return false;
         }
@@ -1691,6 +1701,7 @@ bool tud_audio_buffer_and_schedule_control_xfer(uint8_t rhport, tusb_control_req
 
     // Unknown/Unsupported recipient
     default:
+      TU_LOG2("  Unsupported recipient: %d\r\n", p_request->bmRequestType_bit.recipient);
       TU_BREAKPOINT();
       return false;
   }
